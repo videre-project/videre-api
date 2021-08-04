@@ -1,0 +1,35 @@
+{
+  "name": "videre-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "docs": "node scripts/docs.js",
+    "start": "next start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/videre-project/videre-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/videre-project/videre-api/issues"
+  },
+  "homepage": "https://github.com/videre-project/videre-api#readme",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "jsdom": "^16.6.0",
+    "next": "^11.0.1",
+    "node-fetch": "^2.6.1",
+    "postgres": "^1.0.2",
+    "puppeteer": "^10.1.0",
+    "puppeteer-extra": "^3.1.18",
+    "puppeteer-extra-plugin-stealth": "^2.7.8",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
