@@ -1,5 +1,5 @@
 import postgres from 'postgres';
-import config from 'config.js';
+import config from 'config';
 
 /**
  * Queries database, accepts a template string or JSON to format.
@@ -21,7 +21,7 @@ export const setDelay = ms => new Promise(res => setTimeout(res, ms));
  */
 export function groupBy(list, keyGetter) {
   const map = new Map();
-  list.forEach((item) => {
+  list.forEach(item => {
     const key = keyGetter(item);
     const collection = map.get(key);
     if (!collection) {
@@ -34,31 +34,36 @@ export function groupBy(list, keyGetter) {
 }
 
 /**
- * Removes duplicate query parameters 
+ * Removes duplicate query parameters
  */
-export const removeDuplicates = (query) => Object.keys(query)
-  .map(param => ({
-    [param]: typeof(query[param]) === 'object' 
-    ? (query[param]?.length > 1 ? query[param][0] : [])
-    : query[param]
-  })).reduce(((r, c) => Object.assign(r, c)), {});
+export const removeDuplicates = query =>
+  Object.keys(query)
+    .map(param => ({
+      [param]:
+        typeof query[param] === 'object'
+          ? query[param]?.length > 1
+            ? query[param][0]
+            : []
+          : query[param],
+    }))
+    .reduce((r, c) => Object.assign(r, c), {});
 
 /**
  * Sort function with single sort parameter.
  */
 export function dynamicSort(property) {
   let sortOrder = 1;
-  if(property[0] === "-") {
-      sortOrder = -1;
-      property = property.substr(1);
+  if (property[0] === '-') {
+    sortOrder = -1;
+    property = property.substr(1);
   }
-  return function (a,b) {
-      /* next line works with strings and numbers, 
-       * and you may want to customize it to your needs
-       */
-      const result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
-      return result * sortOrder;
-  }
+  return function (a, b) {
+    /* next line works with strings and numbers,
+     * and you may want to customize it to your needs
+     */
+    const result = a[property] < b[property] ? -1 : a[property] > b[property] ? 1 : 0;
+    return result * sortOrder;
+  };
 }
 
 /**
@@ -67,11 +72,13 @@ export function dynamicSort(property) {
 export function dynamicSortMultiple() {
   const props = arguments;
   return function (obj1, obj2) {
-      let i = 0, result = 0, numberOfProperties = props.length;
-      while(result === 0 && i < numberOfProperties) {
-          result = dynamicSort(props[i])(obj1, obj2);
-          i++;
-      }
-      return result;
-  }
+    let i = 0,
+      result = 0,
+      numberOfProperties = props.length;
+    while (result === 0 && i < numberOfProperties) {
+      result = dynamicSort(props[i])(obj1, obj2);
+      i++;
+    }
+    return result;
+  };
 }

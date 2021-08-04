@@ -1,27 +1,14 @@
 {
   "name": "videre-api",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "docs": "node scripts/docs.js",
-    "start": "next start"
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-next": "^11.0.1",
+    "prettier": "^2.3.2"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/videre-project/videre-api.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/videre-project/videre-api/issues"
-  },
-  "homepage": "https://github.com/videre-project/videre-api#readme",
   "dependencies": {
-    "dotenv": "^10.0.0",
     "jsdom": "^16.6.0",
     "next": "^11.0.1",
     "node-fetch": "^2.6.1",
@@ -31,5 +18,13 @@
     "puppeteer-extra-plugin-stealth": "^2.7.8",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "docs": "node scripts/docs.js",
+    "start": "next start",
+    "lint": "next lint && prettier src --check",
+    "lint-fix": "next lint --fix && prettier src --write src"
   }
 }
