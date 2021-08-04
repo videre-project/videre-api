@@ -1,23 +1,7 @@
 /**
- * Response templates for consistent RESTful responses.
- */
-export const TEMPLATES = {
-  BAD_REQUEST: {
-    object: 'error',
-    code: 'bad_request',
-    status: 400,
-  },
-  NOT_FOUND: {
-    object: 'error',
-    code: 'not_found',
-    status: 404,
-  },
-};
-
-/**
  * Magic: The Gathering Online supported formats, sanctioned event types, colors, card types, etc.
  */
-export const MTGO = {
+const MTGO = {
   FORMATS: ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper'],
   EVENT_TYPES: [
     'mocs',
@@ -52,3 +36,5 @@ export const MTGO = {
     'Zirda, the Dawnwaker',
   ],
 };
+
+export default MTGO;

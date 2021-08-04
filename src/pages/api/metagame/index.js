@@ -1,4 +1,4 @@
-import { MTGO, TEMPLATES } from 'constants';
+import MTGO from 'data/mtgo';
 import { sql, removeDuplicates, dynamicSortMultiple } from 'utils/database';
 import { getParams, eventsQuery } from 'utils/querybuilder';
 
@@ -46,8 +46,7 @@ export default async (req, res) => {
     !_format ||
     !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))
   ) {
-    return res.status(TEMPLATES.BAD_REQUEST.status).json({
-      ...TEMPLATES.BAD_REQUEST,
+    return res.status(400).json({
       details: "No valid 'format' parameter provided.",
     });
   }
@@ -69,8 +68,7 @@ export default async (req, res) => {
 
   const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]) || 2 * 7;
   if (!(_time_interval > 0)) {
-    return res.status(TEMPLATES.BAD_REQUEST.status).json({
-      ...TEMPLATES.BAD_REQUEST,
+    return res.status(400).json({
       details: "'time_interval' parameter must be greater than zero.",
     });
   }
@@ -84,8 +82,7 @@ export default async (req, res) => {
     _max_date: getParams(params, 'max', 'max-date'),
   });
   if (!request_1[0]) {
-    return res.status(TEMPLATES.BAD_REQUEST.status).json({
-      ...TEMPLATES.BAD_REQUEST,
+    return res.status(400).json({
       details: 'No event data was found.',
     });
   }
@@ -96,8 +93,7 @@ export default async (req, res) => {
         AND archetype::TEXT != '{}';
     `);
   if (!request_2[0]) {
-    return res.status(TEMPLATES.BAD_REQUEST.status).json({
-      ...TEMPLATES.BAD_REQUEST,
+    return res.status(400).json({
       details: 'No archetype data was found.',
     });
   }

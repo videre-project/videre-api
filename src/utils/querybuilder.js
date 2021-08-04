@@ -1,5 +1,5 @@
 import { sql } from 'utils/database';
-import { MTGO } from 'constants';
+import MTGO from 'data/mtgo';
 
 export const FORMATS = MTGO.FORMATS.map(obj => {
   const text = obj?.match(/[a-zA-Z]+/g).join('');
