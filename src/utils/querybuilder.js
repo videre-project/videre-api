@@ -1,4 +1,4 @@
-import { sql } from 'utils/database';
+import { sql, removeDuplicates } from 'utils/database';
 import MTGO from 'data/mtgo';
 
 export const FORMATS = MTGO.FORMATS.map(obj => {
@@ -20,10 +20,10 @@ export const EVENT_TYPES = MTGO.EVENT_TYPES.map(obj => {
   return text.join('');
 });
 
-export const getParams = (query, prop1, prop2, prop3) =>
-  [].concat.apply([], [prop1, prop2, prop3]?.map(prop => query?.[prop]).filter(Boolean));
+export const getParams = (query, prop1, prop2, prop3, prop4, prop5, prop6) =>
+  [].concat.apply([], [prop1, prop2, prop3, prop4, prop5, prop6]?.map(prop => query?.[prop]).filter(Boolean));
 
-export const getQuery = query =>
+export const getQueryArgs = query =>
   getParams(query, 'q', 'query').map(obj => {
     let _query = obj.trim().split(' ');
     let args = [];
@@ -42,10 +42,12 @@ export const getQuery = query =>
   });
 
 export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => {
+  // Enumerate parameters to declare final item in array as parameter name
   const mainParam = _mainParam?.slice(-1)[0];
   const param1 = _param1?.slice(-1)[0];
   const param2 = _param2?.slice(-1)[0];
   const param3 = _param3?.slice(-1)[0];
+
   let i = 0;
   let params = query.map(_param => {
     const [_parameter, value] = _param.split(/>=|<=|>|<|=/g);
@@ -71,8 +73,6 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
     };
   });
   [mainParam, param1, param2, param3].filter(Boolean).map(_param => {
-    const set = params.filter(obj => obj?.parameter == _param).map(obj => obj.group);
-
     [...new Set(params.map(obj => obj.group))].forEach(group => {
       let i = 0;
       let g = 0;
@@ -83,9 +83,7 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
         if (i > 1) {
           params[_i] = {
             group: obj.group + 1,
-            parameter: obj.parameter,
-            operator: obj.operator,
-            value: obj.value,
+            ...obj
           };
         }
       });
@@ -117,15 +115,35 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
  *                                                    `MM/DD/YYYY` or `YYYY/MM/DD` format.
  * @param       {catalog}       [uids]              - List of uids to filter selection from.
  */
-export const eventsQuery = async ({
-  format,
-  type,
-  time_interval,
-  offset,
-  _min_date,
-  _max_date,
-  uids,
-}) => {
+
+export const eventsQuery = async (query, uids) => {
+  const params = removeDuplicates(query);
+
+  // Enumerate and parse arguments from query
+  const _format = getParams(query, 'f', 'fmt', 'format').map(obj => {
+    const text = obj?.match(/[a-zA-Z\-]+/g).join('');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  });
+  const _type = getParams(query, 't', 'type').map(obj => {
+    const text = obj
+      .replaceAll(' ', '-')
+      ?.match(/[a-zA-Z\-]+/g)
+      .map(x =>
+        x
+          .split(/-/g)
+          .map(_obj => {
+            return _obj.charAt(0).toUpperCase() + _obj.slice(1);
+          }).join(' ')
+      )
+      .flat(1);
+    return text.join('');
+  });
+  const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]) || 2 * 7;
+  const offset = getParams(params, 'o', 'ofs', 'offset')[0];
+  const _min_date = getParams(params, 'min', 'min-date')[0];
+  const _max_date = getParams(params, 'max', 'max-date')[0];
+
+  // Format prettified dates from query string
   const min_date = _min_date?.length
     ? new Intl.DateTimeFormat('en-US').format(
         new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
@@ -140,33 +158,48 @@ export const eventsQuery = async ({
     : offset?.length
     ? new Intl.DateTimeFormat('en-US').format(new Date().getTime() - parseInt(offset))
     : undefined;
+  
+  const eventData = await sql.unsafe(`
+    SELECT * FROM events
+    WHERE uid IN (
+        SELECT uid FROM events
+        WHERE ${[
+          `format in (${(_format?.length ? _format : FORMATS)
+            .map(obj => `'${obj}'`)
+            .join()})`,
+          `type in (${(_type?.length ? _type : EVENT_TYPES)
+            .map(obj => `'${obj}'`)
+            .join()})`,
+          !isNaN(_time_interval)
+            ? `date::DATE ${min_date && !max_date ? '<=' : '>='} ${
+                min_date && !max_date
+                  ? `'${min_date}'::DATE`
+                  : max_date
+                  ? `'${max_date}'::DATE`
+                  : 'CURRENT_DATE'
+              } ${min_date && !max_date ? '+' : '-'} ${_time_interval}::INT`
+            : '',
+          min_date ? `date::DATE >= '${min_date}'::DATE` : '',
+          max_date ? `date::DATE <= '${max_date}'::DATE` : '',
+          uids?.length ? `uid IN (${uids})` : '',
+        ]
+          .filter(Boolean)
+          .join(' AND ')}
+    ) ORDER BY date::DATE DESC, uid DESC;
+  `);
 
-  return await sql.unsafe(`
-        SELECT * FROM events
-        WHERE uid IN (
-            SELECT uid FROM events
-            WHERE ${[
-              `format in (${(format?.length ? format : FORMATS)
-                .map(obj => `'${obj}'`)
-                .join()})`,
-              `type in (${(type?.length ? type : EVENT_TYPES)
-                .map(obj => `'${obj}'`)
-                .join()})`,
-              !isNaN(time_interval)
-                ? `date::DATE ${min_date && !max_date ? '<=' : '>='} ${
-                    min_date && !max_date
-                      ? `'${min_date}'::DATE`
-                      : max_date
-                      ? `'${max_date}'::DATE`
-                      : 'CURRENT_DATE'
-                  } ${min_date && !max_date ? '+' : '-'} ${time_interval}::INT`
-                : '',
-              min_date ? `date::DATE >= '${min_date}'::DATE` : '',
-              max_date ? `date::DATE <= '${max_date}'::DATE` : '',
-              uids?.length ? `uid IN (${uids})` : '',
-            ]
-              .filter(Boolean)
-              .join(' AND ')}
-        ) ORDER BY date::DATE DESC, uid DESC;
-    `);
+  return {
+    "parameters": Object.entries({
+      [_format?.length == 1 ? 'format' : 'formats']:
+        _format?.length == 1 ? _format[0] : _format,
+      [_type?.length == 1 ? 'type' : 'types']: _type?.length == 1 ? _type[0] : _type,
+      time_interval: _time_interval,
+      offset: offset,
+      min_date: _min_date,
+      max_date: _max_date,
+    })
+      .filter(([_, v]) => (typeof v == 'object' ? v?.length : v != null))
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
+    "data": eventData,
+  }
 };

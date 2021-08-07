@@ -1,72 +1,30 @@
 import MTGO from 'data/mtgo';
-import { sql, removeDuplicates, dynamicSortMultiple } from 'utils/database';
-import { getParams, getQuery, groupQuery, eventsQuery } from 'utils/querybuilder';
+import { sql, dynamicSortMultiple } from 'utils/database';
+import { getQueryArgs, groupQuery, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
-  const params = removeDuplicates(req?.query);
+  // Group query parameters by named params and aliases
   const queryParams = groupQuery({
-    query: getQuery(req?.query).flat(1),
+    query: getQueryArgs(req?.query).flat(1),
     _mainParam: ['card', 'name', 'cardname', 'cardName'],
     _param1: ['qty', 'quantity'],
     _param2: ['is', 'c', 'cont', 'container'],
   });
 
+  // Match query against params and extract query logic
   const query = [...new Set(queryParams.map(obj => obj.group))]
     .map(group => queryParams.filter(obj => obj.group == group))
     ?.flat(1);
-
   if (!query?.length) {
-    return res.status(400).json({
-      details: "You didn't enter anything to search for.",
-    });
+    return res.status(400).json({ "details": "You didn't enter anything to search for." });
   }
 
-  const _format = getParams(req?.query, 'f', 'fmt', 'format').map(obj => {
-    const text = obj?.match(/[a-zA-Z\-]+/g).join('');
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  });
-  if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
-    return res.status(400).json({
-      details: "Invalid 'format' parameter provided.",
-    });
-  }
-  const _type = getParams(req?.query, 't', 'type').map(obj => {
-    const text = obj
-      .replaceAll(' ', '-')
-      ?.match(/[a-zA-Z\-]+/g)
-      .map(x =>
-        x
-          .split(/-/g)
-          .map(_obj => {
-            return _obj.charAt(0).toUpperCase() + _obj.slice(1);
-          })
-          .join(' ')
-      )
-      .flat(1);
-    return text.join('');
-  });
-
-  const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]) || 2 * 7;
-  if (_time_interval <= 0) {
-    return res.status(400).json({
-      details: "'time_interval' parameter must be greater than zero.",
-    });
-  }
-
-  const request_1 = await eventsQuery({
-    format: _format,
-    type: _type,
-    time_interval: _time_interval,
-    offset: getParams(params, 'o', 'ofs', 'offset'),
-    _min_date: getParams(params, 'min', 'min-date'),
-    _max_date: getParams(params, 'max', 'max-date'),
-  });
+  const { parameters, data: request_1 } = await eventsQuery(req.query);
   if (!request_1[0]) {
-    return res.status(400).json({
-      details: 'No event data was found.',
-    });
+    return res.status(404).json({ "details": 'No event data was found.' });
   }
 
+  // Get unique formats in matched events
   const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))].filter(
     item => MTGO.FORMATS.includes(item)
   );
@@ -77,9 +35,7 @@ export default async (req, res) => {
         AND archetype::TEXT != '{}';
     `);
   if (!request_2[0]) {
-    return res.status(400).json({
-      details: 'No archetype data was found.',
-    });
+    return res.status(404).json({ "details": 'No archetype data was found.' });
   }
 
   const decks = request_2
@@ -151,29 +107,28 @@ export default async (req, res) => {
       });
       return {
         [format]: {
-          object: 'catalog',
-          count: [...new Set(formatData.map(_obj => _obj.deck_uid))]?.length,
-          percentage:
+          "object": 'catalog',
+          "count": [...new Set(formatData.map(_obj => _obj.deck_uid))]?.length,
+          "percentage":
             (
               ([...new Set(formatData.map(_obj => _obj.deck_uid))]?.length /
-                [...new Set(_formatData.map(_obj => _obj.deck_uid))]?.length) *
-              100
+                [...new Set(_formatData.map(_obj => _obj.deck_uid))]?.length) * 100
             ).toFixed(2) + '%',
-          unique: [...new Set(formatData.map(_obj => _obj.archetype_uid))]?.length,
-          data: [...new Set(formatData.map(_obj => _obj.archetype_uid))]
+          "unique": [...new Set(formatData.map(_obj => _obj.archetype_uid))]?.length,
+          "data": [...new Set(formatData.map(_obj => _obj.archetype_uid))]
             .map(_uid => ({
-              object: 'archetype',
-              uid: _uid,
-              displayName: formatData.filter(_obj => _obj.archetype_uid == _uid)[0]
+              "object": 'archetype',
+              "uid": _uid,
+              "displayName": formatData.filter(_obj => _obj.archetype_uid == _uid)[0]
                 .displayName,
-              count: [
+              "count": [
                 ...new Set(
                   formatData
                     .filter(_obj => _obj.archetype_uid == _uid)
                     .map(_obj => _obj.deck_uid)
                 ),
               ]?.length,
-              percentage:
+              "percentage":
                 (
                   ([
                     ...new Set(
@@ -188,8 +143,7 @@ export default async (req, res) => {
                           .filter(_obj => _obj.archetype_uid == _uid)
                           .map(_obj => _obj.deck_uid)
                       ),
-                    ]?.length) *
-                  100
+                    ]?.length) * 100
                 ).toFixed(2) + '%',
             }))
             .sort(dynamicSortMultiple('-count', 'displayName')),
@@ -199,19 +153,9 @@ export default async (req, res) => {
     .reduce((a, b) => ({ ...a, ...b }));
 
   res.status(200).json({
-    object: 'collection',
-    parameters: Object.entries({
-      [_format?.length == 1 ? 'format' : 'formats']:
-        _format?.length == 1 ? _format[0] : _format,
-      [_type?.length == 1 ? 'type' : 'types']: _type?.length == 1 ? _type[0] : _type,
-      time_interval: _time_interval,
-      offset: getParams(params, 'o', 'ofs', 'offset'),
-      min_date: getParams(params, 'min', 'min-date'),
-      max_date: getParams(params, 'max', 'max-date'),
-    })
-      .filter(([_, v]) => (typeof v == 'object' ? v?.length : v != null))
-      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
-    conditions: [...new Set(query.map(obj => obj.group))]
+    "object": 'collection',
+    "parameters": parameters,
+    "conditions": [...new Set(query.map(obj => obj.group))]
       .filter(Boolean)
       .map((group, i) =>
         query
@@ -226,13 +170,25 @@ export default async (req, res) => {
           .join(' and ')
       )
       .flat(1),
-    data: {
-      archetypes: formats
+    "data": formats
         .map(format => ({
-          [format]: cards[format],
+          [format]: {
+            "events": {
+              "object": 'collection',
+              "count": request_1.count,
+              "unique": [...new Set(
+                request_1.filter(obj => obj.format.toLowerCase() == format)
+                  .map(obj => obj.type))].length,
+              "types": [...new Set(
+                request_1.filter(obj => obj.format.toLowerCase() == format)
+                  .map(obj => obj.type))],
+              "data": request_1.filter(obj => obj.format.toLowerCase() == format)
+                .map(obj => ({ object: 'event', ...obj })),
+            },
+            "archetypes": cards[format]
+          },
         }))
         .flat(1)
         .reduce((a, b) => ({ ...a, ...b })),
-    },
   });
 };
