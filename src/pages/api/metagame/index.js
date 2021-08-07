@@ -38,17 +38,16 @@ import { eventsQuery } from 'utils/querybuilder';
 export default async (req, res) => {
   const { parameters, data: request_1 } = await eventsQuery(req.query);
   const _format = parameters?.format || parameters?.formats;
-  if (
-    _format &&
-    !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))
-  ) {
-    return res.status(400).json({ "details": "No valid 'format' parameter provided." });
+  if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
+    return res.status(400).json({ details: "No valid 'format' parameter provided." });
   }
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
-    return res.status(400).json({ "details": "'time_interval' parameter must be greater than zero." });
+    return res
+      .status(400)
+      .json({ details: "'time_interval' parameter must be greater than zero." });
   }
   if (!request_1[0]) {
-    return res.status(404).json({ "details": 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.' });
   }
 
   // Get unique formats in matched events
@@ -62,7 +61,7 @@ export default async (req, res) => {
         AND archetype::TEXT != '{}';
     `);
   if (!request_2[0]) {
-    return res.status(404).json({ "details": 'No archetype data was found.' });
+    return res.status(404).json({ details: 'No archetype data was found.' });
   }
 
   const archetypes = request_2
@@ -83,7 +82,7 @@ export default async (req, res) => {
           })),
         ],
         deck_uid: obj.uid,
-        event_uid: obj.event_uid
+        event_uid: obj.event_uid,
       };
     })
     .filter(Boolean);
@@ -95,118 +94,118 @@ export default async (req, res) => {
         deck_uid: obj.deck_uid,
         archetype_uid: obj.uid,
         cardname: card.cardName,
-        ...card
+        ...card,
       }));
     })
     .filter(Boolean)
     .flat(1);
 
   return res.status(200).json({
-    "object": 'collection',
-    "parameters": parameters,
-    "data": formats.map(format => {
-      const _events = request_1
-        .filter(_obj => _obj.format.toLowerCase() === format);
-      const _archetypes = archetypes.filter(archetype =>
-        _events
-          .map(_obj => _obj.event_uid)
-          .includes(archetype.event_uid)
-      );
-      const _cards = cards.filter(card =>
-        _events
-          .map(_obj => _obj.event_uid)
-          .includes(card.event_uid)
-      );
-      return {
-        [format]: {
-          "events": {
-            "object": 'collection',
-            "count": _events?.length,
-            "unique": [...new Set(_events.map(obj => obj.type))].length,
-            "types": [...new Set(_events.map(obj => obj.type))],
-            "data": _events.map(obj => ({ object: 'event', ...obj })),
-          },
-          "archetypes": {
-            "object": 'catalog',
-            "count": request_2?.length,
-            "unique": [...new Set(_archetypes.map(obj => obj.uid))].length,
-            "types": [],
-            "data": _archetypes
-              .filter((obj, i) => _archetypes.findIndex(_obj => _obj.uid === obj.uid) === i)
-              .map(obj => ({
-                "object": 'archetype',
-                "uid": obj.uid,
-                "displayName": obj.displayName,
-                "count": _archetypes.filter(_obj => _obj.uid === obj.uid).length,
-                "percentage":
-                  (
-                    (_archetypes.filter(_obj => _obj.uid === obj.uid).length /
-                      _archetypes.length) *
-                    100
-                  ).toFixed(2) + '%',
-              }))
-              .sort(dynamicSortMultiple('-count', 'displayName')),
-          },
-          "cards": {
-            "object": 'catalog',
-            "count": _cards?.length,
-            "unique": [...new Set(_cards.map(obj => obj.cardname))].length,
-            "types": [],
-            "data": _cards
-              .filter(
-                (obj, i) => _cards.findIndex(_obj => _obj.cardname === obj.cardname) === i
-              )
-              .map(obj => ({
-                "object": 'card',
-                "uid": obj.uid,
-                "cardname": obj.cardname,
-                "count": [
+    object: 'collection',
+    parameters: parameters,
+    data: formats
+      .map(format => {
+        const _events = request_1.filter(_obj => _obj.format.toLowerCase() === format);
+        const _archetypes = archetypes.filter(archetype =>
+          _events.map(_obj => _obj.event_uid).includes(archetype.event_uid)
+        );
+        const _cards = cards.filter(card =>
+          _events.map(_obj => _obj.event_uid).includes(card.event_uid)
+        );
+        return {
+          [format]: {
+            events: {
+              object: 'collection',
+              count: _events?.length,
+              unique: [...new Set(_events.map(obj => obj.type))].length,
+              types: [...new Set(_events.map(obj => obj.type))],
+              data: _events.map(obj => ({ object: 'event', ...obj })),
+            },
+            archetypes: {
+              object: 'catalog',
+              count: request_2?.length,
+              unique: [...new Set(_archetypes.map(obj => obj.uid))].length,
+              types: [],
+              data: _archetypes
+                .filter(
+                  (obj, i) => _archetypes.findIndex(_obj => _obj.uid === obj.uid) === i
+                )
+                .map(obj => ({
+                  object: 'archetype',
+                  uid: obj.uid,
+                  displayName: obj.displayName,
+                  count: _archetypes.filter(_obj => _obj.uid === obj.uid).length,
+                  percentage:
+                    (
+                      (_archetypes.filter(_obj => _obj.uid === obj.uid).length /
+                        _archetypes.length) *
+                      100
+                    ).toFixed(2) + '%',
+                }))
+                .sort(dynamicSortMultiple('-count', 'displayName')),
+            },
+            cards: {
+              object: 'catalog',
+              count: _cards?.length,
+              unique: [...new Set(_cards.map(obj => obj.cardname))].length,
+              types: [],
+              data: _cards
+                .filter(
+                  (obj, i) =>
+                    _cards.findIndex(_obj => _obj.cardname === obj.cardname) === i
+                )
+                .map(obj => ({
+                  object: 'card',
+                  uid: obj.uid,
+                  cardname: obj.cardname,
+                  count: [
                     ...new Set(
                       _cards
                         .filter(_obj => _obj.cardname === obj.cardname)
                         .map(_obj => _obj.deck_uid)
                     ),
                   ].length,
-                "percentage":
-                  parseFloat(
-                    ([
-                      ...new Set(
-                        _cards
-                          .filter(_obj => _obj.cardname === obj.cardname)
-                          .map(_obj => _obj.deck_uid)
-                      ),
-                    ].length /
-                      [...new Set(_cards.map(_obj => _obj.deck_uid))].length) *
-                      100
-                  ).toFixed(2) + '%',
-                "average": parseFloat(
-                  (
-                    _cards
-                      .filter(_obj => _obj.cardname === obj.cardname)
-                      .map(_obj => _obj.quantity)
-                      .reduce((a, b) => a + b) /
-                    [
-                      ...new Set(
-                        _cards
-                          .filter(_obj => _obj.cardname === obj.cardname)
-                          .map(_obj => _obj.deck_uid)
-                      ),
-                    ].length
-                  ).toFixed(2)
-                ),
-                "container": [
-                  ...new Set(
-                    _cards
-                      .filter(_obj => _obj.cardname === obj.cardname)
-                      .map(_obj => _obj.container)
+                  percentage:
+                    parseFloat(
+                      ([
+                        ...new Set(
+                          _cards
+                            .filter(_obj => _obj.cardname === obj.cardname)
+                            .map(_obj => _obj.deck_uid)
+                        ),
+                      ].length /
+                        [...new Set(_cards.map(_obj => _obj.deck_uid))].length) *
+                        100
+                    ).toFixed(2) + '%',
+                  average: parseFloat(
+                    (
+                      _cards
+                        .filter(_obj => _obj.cardname === obj.cardname)
+                        .map(_obj => _obj.quantity)
+                        .reduce((a, b) => a + b) /
+                      [
+                        ...new Set(
+                          _cards
+                            .filter(_obj => _obj.cardname === obj.cardname)
+                            .map(_obj => _obj.deck_uid)
+                        ),
+                      ].length
+                    ).toFixed(2)
                   ),
-                ],
-              }))
-              .sort(dynamicSortMultiple('-count', '-average', 'cardname')),
-          }
-        }
-      };
-    }).flat(1)
-    .reduce((a, b) => ({ ...a, ...b })),
+                  container: [
+                    ...new Set(
+                      _cards
+                        .filter(_obj => _obj.cardname === obj.cardname)
+                        .map(_obj => _obj.container)
+                    ),
+                  ],
+                }))
+                .sort(dynamicSortMultiple('-count', '-average', 'cardname')),
+            },
+          },
+        };
+      })
+      .flat(1)
+      .reduce((a, b) => ({ ...a, ...b })),
   });
 };

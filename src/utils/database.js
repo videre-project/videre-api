@@ -22,17 +22,18 @@ export const setDelay = ms => new Promise(res => setTimeout(res, ms));
  * and returns a Map of the array grouped by the grouping function.
  */
 export function groupBy(list, keyGetter) {
-  const map = new Map();
-  list.forEach(item => {
+  return list.reduce((map, item) => {
     const key = keyGetter(item);
     const collection = map.get(key);
-    if (!collection) {
-      map.set(key, [item]);
-    } else {
+
+    if (collection) {
       collection.push(item);
+    } else {
+      map.set(key, [item]);
     }
-  });
-  return map;
+
+    return map;
+  }, new Map());
 }
 
 /**
@@ -71,8 +72,7 @@ export function dynamicSort(property) {
 /**
  * Sort function with multiple sort parameters.
  */
-export function dynamicSortMultiple() {
-  const props = arguments;
+export function dynamicSortMultiple(props) {
   return function (obj1, obj2) {
     let i = 0,
       result = 0,
