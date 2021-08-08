@@ -16,40 +16,23 @@ export const sql = postgres(
 );
 
 export const setDelay = ms => new Promise(res => setTimeout(res, ms));
-
 /**
  * Takes an Array and a grouping function
  * and returns a Map of the array grouped by the grouping function.
  */
-export function groupBy(list, keyGetter) {
-  return list.reduce((map, item) => {
+ export function groupBy(list, keyGetter) {
+  const map = new Map();
+  list.forEach(item => {
     const key = keyGetter(item);
     const collection = map.get(key);
-
-    if (collection) {
-      collection.push(item);
-    } else {
+    if (!collection) {
       map.set(key, [item]);
+    } else {
+      collection.push(item);
     }
-
-    return map;
-  }, new Map());
+  });
+  return map;
 }
-
-/**
- * Removes duplicate query parameters
- */
-export const removeDuplicates = query =>
-  Object.keys(query)
-    .map(param => ({
-      [param]:
-        typeof query[param] === 'object'
-          ? query[param]?.length > 1
-            ? query[param][0]
-            : []
-          : query[param],
-    }))
-    .reduce((r, c) => Object.assign(r, c), {});
 
 /**
  * Sort function with single sort parameter.
@@ -72,7 +55,8 @@ export function dynamicSort(property) {
 /**
  * Sort function with multiple sort parameters.
  */
-export function dynamicSortMultiple(props) {
+export function dynamicSortMultiple() {
+  const props = arguments;
   return function (obj1, obj2) {
     let i = 0,
       result = 0,

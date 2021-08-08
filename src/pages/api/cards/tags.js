@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { JSDOM } from 'jsdom';
 import { setDelay } from 'utils/database';
-import { getParams } from 'utils/querybuilder';
+import { getParams, removeDuplicates, pruneObjectKeys } from 'utils/querybuilder';
 
 const getScryfallTags = async type => {
   const response = await fetch('https://scryfall.com/docs/tagger-tags');
@@ -10,17 +10,17 @@ const getScryfallTags = async type => {
 
   const sections = Array.from(document.querySelectorAll('div.prose h2'));
   const tags = sections.reduce((output, section) => {
-    const sectionType = section.innerText.endsWith('(functional)')
+    const sectionType = section.textContent.endsWith('(functional)')
       ? 'functional'
       : 'artwork';
-    if (sectionType !== type) return output;
+    if (!type || sectionType == type) return output;
 
     const links = Array.from(section.nextElementSibling.querySelectorAll('a'));
-    links.forEach(({ innerText, href }) => {
+    links.forEach(({ text, href }) => {
       output.push({
         type: sectionType,
-        name: innerText,
-        href,
+        name: text,
+        url: `https://api.scryfall.com/cards${href}`,
       });
     });
 
@@ -34,16 +34,16 @@ const getTaggedCards = async tags =>
   await Promise.all(
     tags.map(async (tag, i) => {
       if (i > 0) await setDelay(100);
-      const page = await fetch(`https://api.scryfall.com/cards${tag.uri}`).then(res =>
+      const page = await fetch(tag.url).then(res =>
         res.json()
       );
-      const { has_more, total_cards = 0, data = [] } = page;
+      let { has_more, total_cards = 0, data = [] } = page;
 
       if (has_more) {
         const numPages = Math.ceil(total_cards / data.length);
         for (let i = 2; i <= numPages; i++) {
           await setDelay(100);
-          const nextPage = await fetch(`${tag.url}&page=${i}`).then(res => res.json());
+          const nextPage = await fetch(tag.url).then(res => res.json());
           data = data.concat(nextPage?.data);
         }
       }
@@ -57,9 +57,17 @@ const getTaggedCards = async tags =>
   );
 
 const tags = async (req, res) => {
-  const source = getParams(req?.query, 'src', 'source', 'from');
+  const source = getParams(removeDuplicates(req?.query), 'src', 'source', 'from');
   const type = getParams(req?.query, 'type');
   const _tags = getParams(req?.query, 'tag', 'tags').join(' ').split(' ').filter(Boolean);
+
+  const parameters = pruneObjectKeys({
+    [source?.length == 1 ? 'source' : 'sources']:
+      source?.length == 1 ? source[0] : source,
+    [type?.length == 1 ? 'type' : 'types']:
+      type?.length == 1 ? type[0] : type,
+    tags: _tags,
+  });
 
   if (source.includes('scryfall')) {
     const tags = [...new Set(await getScryfallTags(type))].filter(tag =>
@@ -72,10 +80,10 @@ const tags = async (req, res) => {
             ? `Displaying ${type.join(', ').replace(/, ([^,]*)$/, ' and $1')} tags only. `
             : 'Displaying all available tags. '
         }Refer to https://scryfall.com/docs/tagger-tags for more.`,
+        parameters: parameters,
         data: {
           tags: {
             object: 'list',
-            count: tags.length,
             types: ['functional', 'artwork'].filter(obj =>
               type?.length ? type.includes(obj) : obj
             ),
@@ -103,15 +111,18 @@ const tags = async (req, res) => {
     );
 
     res.status(200).json({
+      parameters: parameters,
       data: {
         tags: {
           object: 'list',
           count: tagData.length,
           data: tagData
-            .map(({ name, count, uri }) => ({
+            .map(({ name, url }) => ({
               name,
-              count,
-              url: `https://api.scryfall.com/cards${uri}`,
+              count: uniqueCards.filter(
+                ({ tags }) => tags.includes(name)
+              ).length,
+              url,
               exclusive: uniqueCards.filter(
                 ({ tags }) => tags.includes(name) && tags.length === 1
               ).length,
