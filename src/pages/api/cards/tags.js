@@ -13,7 +13,7 @@ const getScryfallTags = async type => {
     const sectionType = section.textContent.endsWith('(functional)')
       ? 'functional'
       : 'artwork';
-    if (!type || sectionType == type) return output;
+    if (!type?.length || !type.includes(sectionType)) return output;
 
     const links = Array.from(section.nextElementSibling.querySelectorAll('a'));
     links.forEach(({ text, href }) => {
@@ -59,7 +59,11 @@ const getTaggedCards = async tags =>
 const tags = async (req, res) => {
   const source = getParams(removeDuplicates(req?.query), 'src', 'source', 'from');
   const type = getParams(req?.query, 'type');
-  const _tags = getParams(req?.query, 'tag', 'tags').join(' ').split(' ').filter(Boolean);
+  const _tags = getParams(req?.query, 'tag', 'tags')
+    .join(' ')
+    .replaceAll(',', ' ')
+    .split(' ')
+    .filter(Boolean);
 
   const parameters = pruneObjectKeys({
     [source?.length == 1 ? 'source' : 'sources']:
@@ -119,7 +123,7 @@ const tags = async (req, res) => {
           object: 'list',
           count: tagData.length,
           data: tagData
-            .map(({ name, url }) => ({
+            .map(({ name, type, url }) => ({
               name,
               count: uniqueCards.filter(
                 ({ tags }) => tags.includes(name)
@@ -128,7 +132,7 @@ const tags = async (req, res) => {
               exclusive: uniqueCards.filter(
                 ({ tags }) => tags.includes(name) && tags.length === 1
               ).length,
-              type: 'functional',
+              type,
             }))
             .sort((a, b) => (a.count < b.count ? 1 : -1)),
         },
