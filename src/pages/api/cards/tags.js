@@ -75,6 +75,7 @@ const tags = async (req, res) => {
     );
     if (!_tags?.length) {
       res.status(200).json({
+        object: 'catalog',
         details: `${
           type?.length
             ? `Displaying ${type.join(', ').replace(/, ([^,]*)$/, ' and $1')} tags only. `
@@ -111,6 +112,7 @@ const tags = async (req, res) => {
     );
 
     res.status(200).json({
+      object: 'collection',
       parameters: parameters,
       data: {
         tags: {
