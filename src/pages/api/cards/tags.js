@@ -124,6 +124,7 @@ const tags = async (req, res) => {
           count: tagData.length,
           data: tagData
             .map(({ name, type, url }) => ({
+              object: 'tag',
               name,
               count: uniqueCards.filter(
                 ({ tags }) => tags.includes(name)
