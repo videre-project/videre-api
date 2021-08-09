@@ -126,14 +126,14 @@ const tags = async (req, res) => {
             .map(({ name, type, url }) => ({
               object: 'tag',
               name,
+              type,
               count: uniqueCards.filter(
                 ({ tags }) => tags.includes(name)
               ).length,
-              url,
               exclusive: uniqueCards.filter(
                 ({ tags }) => tags.includes(name) && tags.length === 1
               ).length,
-              type,
+              url,
             }))
             .sort((a, b) => (a.count < b.count ? 1 : -1)),
         },
