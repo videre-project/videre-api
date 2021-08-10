@@ -12,19 +12,18 @@ const getScryfallTags = async type => {
   const tags = sections.reduce((output, section) => {
     const sectionType = section.textContent.endsWith('(functional)')
       ? 'functional'
-      : 'other';
-    if (!type?.length || !type.includes(sectionType)) return output;
+      : 'artwork';
 
     const links = Array.from(section.nextElementSibling.querySelectorAll('a'));
     links.forEach(({ text, href }) => {
       output.push({
-        type: sectionType == 'other' ? (href.includes('art') ? 'artwork' : 'other') : sectionType,
+        type: sectionType,
         name: text,
         url: `https://api.scryfall.com/cards${href}`,
       });
     });
 
-    return output;
+    return output.filter(obj => type?.length ? type.includes(obj.type) : true);
   }, []);
 
   return tags;
