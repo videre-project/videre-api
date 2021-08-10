@@ -12,13 +12,13 @@ const getScryfallTags = async type => {
   const tags = sections.reduce((output, section) => {
     const sectionType = section.textContent.endsWith('(functional)')
       ? 'functional'
-      : 'artwork';
+      : 'other';
     if (!type?.length || !type.includes(sectionType)) return output;
 
     const links = Array.from(section.nextElementSibling.querySelectorAll('a'));
     links.forEach(({ text, href }) => {
       output.push({
-        type: sectionType,
+        type: sectionType == 'other' ? (href.includes('art') ? 'artwork' : 'other') : sectionType,
         name: text,
         url: `https://api.scryfall.com/cards${href}`,
       });
@@ -89,7 +89,7 @@ const tags = async (req, res) => {
         data: {
           tags: {
             object: 'list',
-            types: ['functional', 'artwork'].filter(obj =>
+            types: ['functional', 'artwork', 'other'].filter(obj =>
               type?.length ? type.includes(obj) : obj
             ),
             data: tags,
@@ -127,13 +127,13 @@ const tags = async (req, res) => {
               object: 'tag',
               name,
               type,
+              url,
               count: uniqueCards.filter(
                 ({ tags }) => tags.includes(name)
               ).length,
               exclusive: uniqueCards.filter(
                 ({ tags }) => tags.includes(name) && tags.length === 1
               ).length,
-              url,
             }))
             .sort((a, b) => (a.count < b.count ? 1 : -1)),
         },
