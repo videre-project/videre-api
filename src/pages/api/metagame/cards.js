@@ -12,16 +12,44 @@ export default async (req, res) => {
   });
 
   // Match query against params and extract query logic
-  const query = [...new Set(queryParams.map(obj => obj.group))]
+  let unmatchedCards = [];
+  const query = await Promise.all([...new Set(queryParams.map(obj => obj.group))]
     .map(group => queryParams.filter(obj => obj.group == group))
-    ?.flat(1);
+    ?.flat(1)
+    .map(async obj => {
+      if (obj.parameter == 'cardName') {
+        const request = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${obj.value}`)
+          .then(response => response.json());
+        if (request?.name) {
+          return {
+            group: obj.group,
+            parameter: obj.parameter,
+            operator: obj.operator,
+            value: request?.name
+          };
+        } else {
+          unmatchedCards.push(obj.value);
+          return obj;
+        }
+      }
+      return obj;
+    }).filter(Boolean));
   if (!query?.length) {
-    return res.status(400).json({ details: "You didn't enter anything to search for." });
+    return res.status(400).json({ "details": "You didn't enter anything to search for." });
+  }
+  if (unmatchedCards.length > 0) {
+    return res.status(404).json({
+      details: `The ${
+          unmatchedCards?.length == 1 ? 'card' : 'cards'
+        } '${
+          unmatchedCards.join("', '").replace(/, ([^,]*)$/, ' and $1')
+        }' could not be found.`
+    });
   }
 
   const { parameters, data: request_1 } = await eventsQuery(req.query);
   if (!request_1[0]) {
-    return res.status(404).json({ details: 'No event data was found.' });
+    return res.status(404).json({ "details": 'No event data was found.' });
   }
 
   // Get unique formats in matched events
@@ -35,7 +63,7 @@ export default async (req, res) => {
         AND archetype::TEXT != '{}';
     `);
   if (!request_2[0]) {
-    return res.status(404).json({ details: 'No archetype data was found.' });
+    return res.status(404).json({ "details": 'No archetype data was found.' });
   }
 
   const decks = request_2
@@ -112,8 +140,7 @@ export default async (req, res) => {
           percentage:
             (
               ([...new Set(formatData.map(_obj => _obj.deck_uid))]?.length /
-                [...new Set(_formatData.map(_obj => _obj.deck_uid))]?.length) *
-              100
+                [...new Set(_formatData.map(_obj => _obj.deck_uid))]?.length) * 100
             ).toFixed(2) + '%',
           unique: [...new Set(formatData.map(_obj => _obj.archetype_uid))]?.length,
           data: [...new Set(formatData.map(_obj => _obj.archetype_uid))]
@@ -144,8 +171,7 @@ export default async (req, res) => {
                           .filter(_obj => _obj.archetype_uid == _uid)
                           .map(_obj => _obj.deck_uid)
                       ),
-                    ]?.length) *
-                  100
+                    ]?.length) * 100
                 ).toFixed(2) + '%',
             }))
             .sort(dynamicSortMultiple('-count', 'displayName')),
@@ -173,33 +199,24 @@ export default async (req, res) => {
       )
       .flat(1),
     data: formats
-      .map(format => ({
-        [format]: {
-          events: {
-            object: 'collection',
-            count: request_1.count,
-            unique: [
-              ...new Set(
-                request_1
-                  .filter(obj => obj.format.toLowerCase() == format)
-                  .map(obj => obj.type)
-              ),
-            ].length,
-            types: [
-              ...new Set(
-                request_1
-                  .filter(obj => obj.format.toLowerCase() == format)
-                  .map(obj => obj.type)
-              ),
-            ],
-            data: request_1
-              .filter(obj => obj.format.toLowerCase() == format)
-              .map(obj => ({ object: 'event', ...obj })),
+        .map(format => ({
+          [format]: {
+            events: {
+              object: 'collection',
+              count: request_1.count,
+              unique: [...new Set(
+                request_1.filter(obj => obj.format.toLowerCase() == format)
+                  .map(obj => obj.type))].length,
+              types: [...new Set(
+                request_1.filter(obj => obj.format.toLowerCase() == format)
+                  .map(obj => obj.type))],
+              data: request_1.filter(obj => obj.format.toLowerCase() == format)
+                .map(obj => ({ object: 'event', ...obj })),
+            },
+            archetypes: cards[format]
           },
-          archetypes: cards[format],
-        },
-      }))
-      .flat(1)
-      .reduce((a, b) => ({ ...a, ...b })),
+        }))
+        .flat(1)
+        .reduce((a, b) => ({ ...a, ...b })),
   });
 };
