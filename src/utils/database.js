@@ -16,12 +16,11 @@ export const sql = postgres(
 );
 
 export const setDelay = ms => new Promise(res => setTimeout(res, ms));
-
 /**
  * Takes an Array and a grouping function
  * and returns a Map of the array grouped by the grouping function.
  */
-export function groupBy(list, keyGetter) {
+ export function groupBy(list, keyGetter) {
   const map = new Map();
   list.forEach(item => {
     const key = keyGetter(item);
@@ -34,21 +33,6 @@ export function groupBy(list, keyGetter) {
   });
   return map;
 }
-
-/**
- * Removes duplicate query parameters
- */
-export const removeDuplicates = query =>
-  Object.keys(query)
-    .map(param => ({
-      [param]:
-        typeof query[param] === 'object'
-          ? query[param]?.length > 1
-            ? query[param][0]
-            : []
-          : query[param],
-    }))
-    .reduce((r, c) => Object.assign(r, c), {});
 
 /**
  * Sort function with single sort parameter.

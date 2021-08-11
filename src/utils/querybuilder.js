@@ -1,27 +1,10 @@
-import { sql, removeDuplicates } from 'utils/database';
+import { sql } from 'utils/database';
 import MTGO from 'data/mtgo';
 
-export const FORMATS = MTGO.FORMATS.map(obj => {
-  const text = obj?.match(/[a-zA-Z]+/g).join('');
-  return text.charAt(0).toUpperCase() + text.slice(1);
-});
-export const EVENT_TYPES = MTGO.EVENT_TYPES.map(obj => {
-  const text = obj
-    ?.match(/[a-zA-Z\-]+/g)
-    .map(x =>
-      x
-        .split(/-/g)
-        .map(_obj => {
-          return _obj.charAt(0).toUpperCase() + _obj.slice(1);
-        })
-        .join(' ')
-    )
-    .flat(1);
-  return text.join('');
-});
+const toPascalCase = text => text.charAt(0).toUpperCase() + text.slice(1);
 
-export const getParams = (query, prop1, prop2, prop3, prop4, prop5, prop6) =>
-  [].concat.apply([], [prop1, prop2, prop3, prop4, prop5, prop6]?.map(prop => query?.[prop]).filter(Boolean));
+export const getParams = (query, ...props) =>
+  [].concat.apply([], props?.map(prop => query?.[prop]).filter(Boolean));
 
 export const getQueryArgs = query =>
   getParams(query, 'q', 'query').map(obj => {
@@ -83,13 +66,35 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
         if (i > 1) {
           params[_i] = {
             group: obj.group + 1,
-            ...obj
+            ...obj,
           };
         }
       });
     });
   });
   return params;
+};
+
+/**
+ * Removes duplicate query parameters
+ */
+export const removeDuplicates = query =>
+ Object.keys(query)
+   .map(param => ({
+     [param]:
+       typeof query[param] === 'object'
+         ? query[param]?.length > 1
+           ? query[param][0]
+           : []
+         : query[param],
+   }))
+   .reduce((r, c) => Object.assign(r, c), {});
+
+
+export const pruneObjectKeys = object => {
+  return Object.entries(object)
+    .filter(([_, v]) => (typeof v == 'object' ? v?.length : v != null))
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
 };
 
 /**
@@ -133,7 +138,8 @@ export const eventsQuery = async (query, uids) => {
           .split(/-/g)
           .map(_obj => {
             return _obj.charAt(0).toUpperCase() + _obj.slice(1);
-          }).join(' ')
+          })
+          .join(' ')
       )
       .flat(1);
     return text.join('');
@@ -158,17 +164,31 @@ export const eventsQuery = async (query, uids) => {
     : offset?.length
     ? new Intl.DateTimeFormat('en-US').format(new Date().getTime() - parseInt(offset))
     : undefined;
-  
+
   const eventData = await sql.unsafe(`
     SELECT * FROM events
     WHERE uid IN (
         SELECT uid FROM events
         WHERE ${[
-          `format in (${(_format?.length ? _format : FORMATS)
-            .map(obj => `'${obj}'`)
+          `format in (${(
+            _format?.length
+              ? _format
+              : MTGO.FORMATS.map(obj =>
+                toPascalCase(obj?.match(/[a-z]+/gi).join(''))
+              )
+            ).map(obj => `'${obj}'`)
             .join()})`,
-          `type in (${(_type?.length ? _type : EVENT_TYPES)
-            .map(obj => `'${obj}'`)
+          `type in (${(
+            _type?.length
+              ? _type
+              : MTGO.EVENT_TYPES.map(obj => {
+                const text = obj
+                  ?.match(/[a-zA-Z\-]+/g)
+                  .map(x => x.split(/-/g).map(toPascalCase).join(' '))
+                  .flat(1);
+                return text.join('');
+              })
+            ).map(obj => `'${obj}'`)
             .join()})`,
           !isNaN(_time_interval)
             ? `date::DATE ${min_date && !max_date ? '<=' : '>='} ${
@@ -189,17 +209,16 @@ export const eventsQuery = async (query, uids) => {
   `);
 
   return {
-    "parameters": Object.entries({
+    parameters: pruneObjectKeys({
       [_format?.length == 1 ? 'format' : 'formats']:
         _format?.length == 1 ? _format[0] : _format,
-      [_type?.length == 1 ? 'type' : 'types']: _type?.length == 1 ? _type[0] : _type,
+      [_type?.length == 1 ? 'type' : 'types']:
+        _type?.length == 1 ? _type[0] : _type,
       time_interval: _time_interval,
-      offset: offset,
+      offset,
       min_date: _min_date,
       max_date: _max_date,
-    })
-      .filter(([_, v]) => (typeof v == 'object' ? v?.length : v != null))
-      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
-    "data": eventData,
-  }
+    }),
+    data: eventData,
+  };
 };
