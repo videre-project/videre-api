@@ -6,7 +6,7 @@ export default async (req, res) => {
   // Group query parameters by named params and aliases
   const queryParams = groupQuery({
     query: getQueryArgs(req?.query).flat(1),
-    _mainParam: ['card', 'name', 'cardname', 'cardName'],
+    _mainParam: ['card', 'name', 'cardname'],
     _param1: ['qty', 'quantity'],
     _param2: ['is', 'c', 'cont', 'container'],
   });
@@ -17,7 +17,7 @@ export default async (req, res) => {
     .map(group => queryParams.filter(obj => obj.group == group))
     ?.flat(1)
     .map(async obj => {
-      if (obj.parameter == 'cardName') {
+      if (obj.parameter == 'cardname') {
         const request = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${obj.value}`)
           .then(response => response.json());
         if (request?.name) {
@@ -72,11 +72,13 @@ export default async (req, res) => {
       if (!archetype0?.uid || archetype0?.uid == null) return;
       return [
         ...obj.deck?.mainboard.map(_obj => ({
-          ..._obj,
+          cardname: _obj.cardName,
+          quantity: _obj.quantity,
           container: 'mainboard',
         })),
         ...obj.deck?.sideboard.map(_obj => ({
-          ..._obj,
+          cardname: _obj.cardName,
+          quantity: _obj.quantity,
           container: 'sideboard',
         })),
       ].map(_obj => ({
@@ -180,7 +182,7 @@ export default async (req, res) => {
     })
     .reduce((a, b) => ({ ...a, ...b }));
 
-  res.status(200).json({
+  return res.status(200).json({
     object: 'collection',
     parameters: parameters,
     conditions: [...new Set(query.map(obj => obj.group))]

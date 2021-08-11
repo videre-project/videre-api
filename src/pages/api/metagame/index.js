@@ -82,7 +82,7 @@ export default async (req, res) => {
           })),
         ],
         deck_uid: obj.uid,
-        event_uid: obj.event_uid,
+        event_uid: obj.event,
       };
     })
     .filter(Boolean);
@@ -107,10 +107,10 @@ export default async (req, res) => {
       .map(format => {
         const _events = request_1.filter(_obj => _obj.format.toLowerCase() === format);
         const _archetypes = archetypes.filter(archetype =>
-          _events.map(_obj => _obj.event_uid).includes(archetype.event_uid)
+          _events.map(_obj => _obj.uid).includes(archetype.event_uid)
         );
         const _cards = cards.filter(card =>
-          _events.map(_obj => _obj.event_uid).includes(card.event_uid)
+          _events.map(_obj => _obj.uid).includes(card.event_uid)
         );
         return {
           [format]: {
