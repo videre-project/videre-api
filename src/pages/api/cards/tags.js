@@ -59,10 +59,9 @@ const tags = async (req, res) => {
   const source = getParams(removeDuplicates(req?.query), 'src', 'source', 'from');
   const type = getParams(req?.query, 'type');
   if (!['functional', 'artwork'].includes(...type)) {
-    res.status(400).json({
+    return res.status(400).json({
       details: `'${type}' type parameter does not exist.`
     });
-    return;
   }
   const _tags = getParams(req?.query, 'tag', 'tags')
     .join(' ')
@@ -83,7 +82,7 @@ const tags = async (req, res) => {
       _tags?.length ? _tags.includes(tag.name) : tag.name
     );
     if (!_tags?.length) {
-      res.status(200).json({
+      return res.status(200).json({
         object: 'catalog',
         details: `${
           type?.length
@@ -102,7 +101,6 @@ const tags = async (req, res) => {
           },
         },
       });
-      return;
     }
     const tagData = await getTaggedCards(tags);
     const uniqueCards = [...new Set(tagData.map(obj => obj.data).flat(1))].map(
@@ -122,7 +120,7 @@ const tags = async (req, res) => {
       })
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       object: 'collection',
       parameters: parameters,
       data: {
@@ -151,7 +149,6 @@ const tags = async (req, res) => {
         },
       },
     });
-    return;
   }
 };
 
