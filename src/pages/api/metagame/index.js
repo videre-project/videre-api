@@ -95,6 +95,7 @@ export default async (req, res) => {
         archetype_uid: obj.uid,
         cardname: card.cardName,
         ...card,
+        event_uid: obj.event_uid
       }));
     })
     .filter(Boolean)
