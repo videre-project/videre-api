@@ -58,7 +58,7 @@ const getTaggedCards = async tags =>
 const tags = async (req, res) => {
   const source = getParams(removeDuplicates(req?.query), 'src', 'source', 'from');
   const type = getParams(req?.query, 'type');
-  if (!['functional', 'artwork'].includes(type)) {
+  if (!['functional', 'artwork'].includes(...type)) {
     res.status(400).json({
       details: `'${type}' type parameter does not exist.`
     });
@@ -94,10 +94,11 @@ const tags = async (req, res) => {
         data: {
           tags: {
             object: 'list',
+            count: tags?.length,
             types: ['functional', 'artwork'].filter(obj =>
               type?.length ? type.includes(obj) : obj
             ),
-            data: tags,
+            data: tags.map(tag => ({ object: 'tag', ...tag })),
           },
         },
       });
