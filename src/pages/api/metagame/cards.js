@@ -12,45 +12,91 @@ export default async (req, res) => {
   });
 
   // Match query against params and extract query logic
-  let unmatchedCards = [];
-  const query = await Promise.all([...new Set(queryParams.map(obj => obj.group))]
+  const _query = [...new Set(queryParams.map(obj => obj.group))]
     .map(group => queryParams.filter(obj => obj.group == group)).flat(1)
+  if (!_query?.length) {
+    return res.status(400).json({ details: "You didn't enter anything to search for." });
+  }
+
+  // Remove unmatched cards from query conditions
+  let ignoredGroups = [];
+  let query = await Promise.all(_query
     .map(async obj => {
       if (obj.parameter == 'cardname') {
         const request = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${obj.value}`)
           .then(response => response.json());
-        if (request?.name) {
-          return {
-            group: obj.group,
-            parameter: obj.parameter,
-            operator: obj.operator,
-            value: request?.name
-          };
-        } else {
-          unmatchedCards.push(obj.value);
-          return obj;
+        if (!request?.name) {
+          ignoredGroups.push(obj.group);
+          return { ...obj, value: request?.name || null };
+        }
+      }
+      if (obj.parameter == 'quantity') {
+        if (isNaN(obj.value)) {
+          ignoredGroups.push(obj.group);
+          return { ...obj, value: null };
+        }
+      }
+      if (obj.parameter == 'container') {
+        if (!['mainboard', 'sideboard'].includes(obj.value)) {
+          ignoredGroups.push(obj.group);
+          return { ...obj, value: null };
         }
       }
       return obj;
     }).filter(Boolean));
+
+  const warnings = ignoredGroups.length > 0
+    ? {
+        warnings: [...new Set(query.map(obj => obj.group))]
+          .filter(Boolean)
+          .filter(group => ignoredGroups.includes(group))
+          .map((group, i) => {
+            const getValue = (parameter) => _query.filter(obj => obj.group == group)
+              .filter(obj => obj.parameter == parameter)
+              .map(obj => obj.value)[0];
+            const errors = query.filter(obj => obj.value === null)
+              .map(obj => obj.parameter);
+            const condition = _query.filter(obj => obj.group == group)
+              .map(_obj =>
+                [
+                  _obj.parameter.toLowerCase(),
+                  _obj.operator,
+                  !isNaN(_obj.value) ? _obj.value : `'${_obj.value || ''}'`,
+                ].join(' ')
+              ).join(' and ');
+            return [
+              'T' + [
+                errors.includes('cardname')
+                  ? `the card '${ getValue('cardname') }' could not be found`
+                  : '',
+                errors.includes('quantity')
+                  ? `the quantity '${ getValue('quantity') }' is not a number`
+                  : '',
+                errors.includes('container')
+                  ? `the container '${ getValue('container') }' does not exist`
+                  : '',
+              ].join(', ')
+              .replace(/, ([^,]*)$/, ' and $1')
+              .slice(1) + '.',
+              `Condition ${ group } “${ condition }” was ignored.`
+            ].join(' ').replace(/\s+/g,' ').trim();
+          }).flat(1)
+      }
+    : {};
+
+  query = query.filter(obj => !ignoredGroups.includes(obj.group));
   if (!query?.length) {
-    return res.status(400)
-      .json({ "details": "You didn't enter anything to search for." });
-  }
-  if (unmatchedCards.length > 0) {
-    return res.status(404).json({
-      details: `The ${
-          unmatchedCards?.length == 1 ? 'card' : 'cards'
-        } '${
-          unmatchedCards.join("', '").replace(/, ([^,]*)$/, ' and $1')
-        }' could not be found.`
+    return res.status(400).json({
+      details: `Provided query ${
+          ignoredGroups?.length == 1 ? 'condition' : 'conditions'
+        } had one or more invalid parameters.`,
+      ...warnings,
     });
   }
 
   const { parameters, data: request_1 } = await eventsQuery(req.query);
   if (!request_1[0]) {
-    return res.status(404)
-      .json({ "details": 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.' });
   }
 
   // Get unique formats in matched events
@@ -58,13 +104,36 @@ export default async (req, res) => {
     .filter(item => MTGO.FORMATS.includes(item));
 
   const request_2 = await sql.unsafe(`
-        SELECT * from results
-        WHERE event in (${request_1.map(obj => obj.uid)});
-    `);
+    SELECT * from results
+    WHERE event in (${request_1.map(obj => obj.uid)});
+  `);
   if (!request_2[0]) {
-    return res.status(404)
-      .json({ "details": 'No archetype data was found.' });
+    return res.status(404).json({ details: 'No archetype data was found.' });
   }
+
+  const archetypes = request_2
+    .map(obj => {
+      if (obj.archetype === {}) return;
+      const archetype0 = obj.archetype[Object.keys(obj.archetype)[0]];
+      if (!archetype0?.uid || archetype0?.uid == null) return;
+      return {
+        uid: archetype0.uid,
+        displayName: [...archetype0.alias, archetype0.displayName].filter(Boolean)[0],
+        deck: [
+          ...obj.deck?.mainboard.map(_obj => ({
+            ..._obj,
+            container: 'mainboard',
+          })),
+          ...obj.deck?.sideboard.map(_obj => ({
+            ..._obj,
+            container: 'sideboard',
+          })),
+        ],
+        deck_uid: obj.uid,
+        event_uid: obj.event,
+      };
+    })
+    .filter(Boolean);
 
   const decks = request_2
     .map(obj => {
@@ -183,9 +252,11 @@ export default async (req, res) => {
 
   return res.status(200).json({
     object: 'collection',
+    ...warnings,
     parameters: parameters,
     conditions: [...new Set(query.map(obj => obj.group))]
       .filter(Boolean)
+      .filter(group => !ignoredGroups.includes(group))
       .map((group, i) =>
         query.filter(obj => obj.group == group)
           .map(_obj =>

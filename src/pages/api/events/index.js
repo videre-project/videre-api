@@ -1,25 +1,22 @@
 import MTGO from 'data/mtgo';
-import { sql, dynamicSortMultiple } from 'utils/database';
+import { sql } from 'utils/database';
 import { getParams, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
   const uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
   const { parameters, data: request_1 } = await eventsQuery(
-      req.query,
-      uids.map(id => id.match(/[0-9]+/g)).join('')
-    );
+    req.query,
+    uids.map(id => id.match(/[0-9]+/g) || null).filter(Boolean).join('')
+  );
   const _format = [...(parameters?.format || parameters?.formats)];
   if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
-    return res.status(400)
-      .json({ details: "No valid 'format' parameter provided." });
+    return res.status(400).json({ details: "No valid 'format' parameter provided." });
   }
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
-    return res.status(400)
-      .json({ details: "'time_interval' parameter must be greater than zero." });
+    return res.status(400).json({ details: "'time_interval' parameter must be greater than zero." });
   }
   if (!request_1[0]) {
-    return res.status(404)
-      .json({ details: 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.' });
   }
 
   // Get unique formats in matched events
@@ -31,8 +28,7 @@ export default async (req, res) => {
         WHERE event in (${request_1.map(obj => obj.uid)});
     `);
   if (!request_2[0]) {
-    return res.status(404)
-        .json({ details: 'No player data was found.' });
+    return res.status(404).json({ details: 'No player data was found.' });
   }
 
   const archetypes = request_2
@@ -66,7 +62,7 @@ export default async (req, res) => {
       .map(format => {
         const _events = request_1.filter(_obj => _obj.format.toLowerCase() === format);
         const _archetypes = archetypes.filter(archetype =>
-            _events.map(_obj => _obj.uid).includes(archetype.event_uid)
+          _events.map(_obj => _obj.uid).includes(archetype.event_uid)
         );
         return {
           [format]: {
@@ -87,15 +83,17 @@ export default async (req, res) => {
                       const archetype0 = obj.archetype !== {}
                         ? _obj.archetype[Object.keys(_obj.archetype)[0]]
                         : {};
-                      const tiebreakers = {
-                        tiebreakers: {
-                          GWP: _obj.stats?.GWP || '-',
-                          OGWP: _obj.stats?.OGWP || '-',
-                          OMWP: _obj.stats?.OMWP || '-',
-                        }
-                      };
+                      const tiebreakers = _obj.stats?.GWP
+                        ? {
+                            tiebreakers: {
+                              GWP: _obj.stats?.GWP,
+                              OGWP: _obj.stats?.OGWP,
+                              OMWP: _obj.stats?.OMWP,
+                            }
+                          }
+                        : {};
                       return {
-                        object: 'player-result',
+                        object: 'event-result',
                         uid: _obj.uid,
                         username: _obj.username,
                         record: _obj.stats.record,
