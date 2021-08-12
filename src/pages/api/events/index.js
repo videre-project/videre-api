@@ -3,11 +3,17 @@ import { sql } from 'utils/database';
 import { getParams, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
-  const uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
-  const { parameters, data: request_1 } = await eventsQuery(
-    req.query,
-    uids.map(id => id.match(/[0-9]+/g) || null).filter(Boolean).join('')
-  );
+  const _uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
+  const uids = _uids.map(id =>
+    [...id.split(',')].map(_id => _id.match(/[0-9]+/g).join('')) || null
+  ).flat(1).filter(Boolean);
+  if (!uids?.length) {
+    return res.status(400).json({
+      details: `No valid 'eventID' ${ uids?.length == 1 ? 'parameter' : 'parameters' } provided.`
+    });
+  }
+
+  const { parameters, data: request_1 } = await eventsQuery(req.query, uids);
   const _format = [...(parameters?.format || parameters?.formats)];
   if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
     return res.status(400).json({ details: "No valid 'format' parameter provided." });
@@ -15,8 +21,33 @@ export default async (req, res) => {
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
     return res.status(400).json({ details: "'time_interval' parameter must be greater than zero." });
   }
+
+  const unmatchedFormats = (typeof(parameters?.format) == 'object'
+      ? [...new Set(parameters?.format)]
+      : [parameters?.format]
+    ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
+    .filter(Boolean);
+  const unmatchedTypes = (typeof(parameters?.type) == 'object'
+      ? [...new Set(parameters?.type)]
+      : [parameters?.type]
+    ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
+    .filter(Boolean);
+  const unmatchedUIDs = [...new Set(uids)].filter(uid =>
+    !([...new Set(request_1.map(obj => obj.uid.toString()))].includes(uid))
+  );
+
+  const warnings = [...unmatchedFormats, ...unmatchedTypes, ...unmatchedUIDs].length > 0
+    ? {
+        warnings: [
+          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+          ...unmatchedUIDs.map(uid => `The eventID parameter '${uid}' could not be found.`)
+        ]
+      }
+    : {};
+
   if (!request_1[0]) {
-    return res.status(404).json({ details: 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.', ...warnings });
   }
 
   // Get unique formats in matched events
@@ -28,7 +59,7 @@ export default async (req, res) => {
         WHERE event in (${request_1.map(obj => obj.uid)});
     `);
   if (!request_2[0]) {
-    return res.status(404).json({ details: 'No player data was found.' });
+    return res.status(404).json({ details: 'No player data was found.', ...warnings });
   }
 
   const archetypes = request_2
@@ -57,6 +88,7 @@ export default async (req, res) => {
 
   return res.status(200).json({
     object: 'catalog',
+    ...warnings,
     parameters: parameters,
     data: formats
       .map(format => {

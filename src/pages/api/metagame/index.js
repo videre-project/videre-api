@@ -44,8 +44,29 @@ export default async (req, res) => {
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
     return res.status(400).json({ details: "'time_interval' parameter must be greater than zero." });
   }
+
+  const unmatchedFormats = (typeof(parameters?.format) == 'object'
+      ? [...new Set(parameters?.format)]
+      : [parameters?.format]
+    ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
+    .filter(Boolean);
+  const unmatchedTypes = (typeof(parameters?.type) == 'object'
+      ? [...new Set(parameters?.type)]
+      : [parameters?.type]
+    ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
+    .filter(Boolean);
+
+  const warnings = [...unmatchedFormats, ...unmatchedTypes].length > 0
+    ? {
+        warnings: [
+          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+        ]
+      }
+    : {};
+
   if (!request_1[0]) {
-    return res.status(404).json({ details: 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.', ...warnings });
   }
 
   // Get unique formats in matched events
@@ -57,7 +78,7 @@ export default async (req, res) => {
         WHERE event in (${request_1.map(obj => obj.uid)});
     `);
   if (!request_2[0]) {
-    return res.status(404).json({ details: 'No archetype data was found.' });
+    return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
   }
 
   const archetypes = request_2

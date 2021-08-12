@@ -59,9 +59,7 @@ const tags = async (req, res) => {
   const source = getParams(removeDuplicates(req?.query), 'src', 'source', 'from');
   const type = getParams(req?.query, 'type');
   if (!['functional', 'artwork'].includes(...type)) {
-    return res.status(400).json({
-      details: `'${type}' type parameter does not exist.`
-    });
+    return res.status(400).json({ details: `'${type}' type parameter does not exist.` });
   }
   const _tags = getParams(req?.query, 'tag', 'tags')
     .join(' ')
@@ -120,9 +118,20 @@ const tags = async (req, res) => {
       })
     );
 
+    const unmatchedTags = (parameters?.tag || parameters?.tags)
+      ?.filter(tag => !tagData.map(obj => obj.name).includes(tag))
+    const warnings = unmatchedTags.length > 0
+    ? { warnings: unmatchedTags.map(tag => `The tag '${tag}' does not exist.`) }
+    : {};
+
     return res.status(200).json({
       object: 'collection',
-      parameters: parameters,
+      ...warnings,
+      parameters: {
+        ...parameters,
+        tags: (parameters?.tag || parameters?.tags)
+          ?.filter(tag => tagData.map(obj => obj.name).includes(tag))
+      },
       data: {
         tags: {
           object: 'list',

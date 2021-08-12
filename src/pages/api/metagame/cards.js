@@ -45,42 +45,46 @@ export default async (req, res) => {
       return obj;
     }).filter(Boolean));
 
-  const warnings = ignoredGroups.length > 0
+  let warnings = ignoredGroups.length > 0
     ? {
-        warnings: [...new Set(query.map(obj => obj.group))]
-          .filter(Boolean)
-          .filter(group => ignoredGroups.includes(group))
-          .map((group, i) => {
-            const getValue = (parameter) => _query.filter(obj => obj.group == group)
-              .filter(obj => obj.parameter == parameter)
-              .map(obj => obj.value)[0];
-            const errors = query.filter(obj => obj.value === null)
-              .map(obj => obj.parameter);
-            const condition = _query.filter(obj => obj.group == group)
-              .map(_obj =>
-                [
-                  _obj.parameter.toLowerCase(),
-                  _obj.operator,
-                  !isNaN(_obj.value) ? _obj.value : `'${_obj.value || ''}'`,
-                ].join(' ')
-              ).join(' and ');
-            return [
-              'T' + [
-                errors.includes('cardname')
-                  ? `the card '${ getValue('cardname') }' could not be found`
-                  : '',
-                errors.includes('quantity')
-                  ? `the quantity '${ getValue('quantity') }' is not a number`
-                  : '',
-                errors.includes('container')
-                  ? `the container '${ getValue('container') }' does not exist`
-                  : '',
-              ].join(', ')
-              .replace(/, ([^,]*)$/, ' and $1')
-              .slice(1) + '.',
-              `Condition ${ group } “${ condition }” was ignored.`
-            ].join(' ').replace(/\s+/g,' ').trim();
-          }).flat(1)
+        warnings: [
+          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+          ...[...new Set(query.map(obj => obj.group))]
+            .filter(Boolean)
+            .filter(group => ignoredGroups.includes(group))
+            .map((group, i) => {
+              const getValue = (parameter) => _query.filter(obj => obj.group == group)
+                .filter(obj => obj.parameter == parameter)
+                .map(obj => obj.value)[0];
+              const errors = query.filter(obj => obj.value === null)
+                .map(obj => obj.parameter);
+              const condition = _query.filter(obj => obj.group == group)
+                .map(_obj =>
+                  [
+                    _obj.parameter.toLowerCase(),
+                    _obj.operator,
+                    !isNaN(_obj.value) ? _obj.value : `'${_obj.value || ''}'`,
+                  ].join(' ')
+                ).join(' and ');
+              return [
+                'T' + [
+                  errors.includes('cardname')
+                    ? `the card '${ getValue('cardname') }' could not be found`
+                    : '',
+                  errors.includes('quantity')
+                    ? `the quantity '${ getValue('quantity') }' is not a number`
+                    : '',
+                  errors.includes('container')
+                    ? `the container '${ getValue('container') }' does not exist`
+                    : '',
+                ].join(', ')
+                .replace(/, ([^,]*)$/, ' and $1')
+                .slice(1) + '.',
+                `Condition ${ group } “${ condition }” was ignored.`
+              ].join(' ').replace(/\s+/g,' ').trim();
+            }).flat(1),
+        ]
       }
     : {};
 
@@ -95,8 +99,25 @@ export default async (req, res) => {
   }
 
   const { parameters, data: request_1 } = await eventsQuery(req.query);
+
+  const unmatchedFormats = (typeof(parameters?.format) == 'object'
+      ? [...new Set(parameters?.format)]
+      : [parameters?.format]
+    ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
+    .filter(Boolean);
+  const unmatchedTypes = (typeof(parameters?.type) == 'object'
+      ? [...new Set(parameters?.type)]
+      : [parameters?.type]
+    ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
+    .filter(Boolean);
+  if ([...unmatchedFormats, ...unmatchedTypes].length) warnings.warnings = {
+    ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+    ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+    ...warnings?.warnings
+  };
+
   if (!request_1[0]) {
-    return res.status(404).json({ details: 'No event data was found.' });
+    return res.status(404).json({ details: 'No event data was found.', ...warnings });
   }
 
   // Get unique formats in matched events
@@ -108,7 +129,7 @@ export default async (req, res) => {
     WHERE event in (${request_1.map(obj => obj.uid)});
   `);
   if (!request_2[0]) {
-    return res.status(404).json({ details: 'No archetype data was found.' });
+    return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
   }
 
   const archetypes = request_2
@@ -164,8 +185,7 @@ export default async (req, res) => {
   const cards = formats
     .map(format => {
       const _formatData = decks.filter(card =>
-        request_1
-          .filter(_obj => _obj.format.toLowerCase() === format)
+        request_1.filter(_obj => _obj.format.toLowerCase() === format)
           .map(_obj => _obj.uid)
           .includes(card.event_uid)
       );

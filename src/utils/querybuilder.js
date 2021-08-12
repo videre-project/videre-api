@@ -219,6 +219,9 @@ export const eventsQuery = async (query, uids) => {
       offset,
       min_date: _min_date,
       max_date: _max_date,
+      uids: [...new Set(uids)].filter(uid =>
+        ([...new Set(eventData.map(obj => obj.uid.toString()))].includes(uid.toString()))
+      ),
     }),
     data: eventData,
   };
