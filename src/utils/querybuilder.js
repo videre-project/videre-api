@@ -144,7 +144,8 @@ export const eventsQuery = async (query, uids) => {
       .flat(1);
     return text.join('');
   });
-  const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]) || 2 * 7;
+  const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0])
+    || uids ? undefined : 2 * 7;
   const offset = getParams(params, 'o', 'ofs', 'offset')[0];
   const _min_date = getParams(params, 'min', 'min-date')[0];
   const _max_date = getParams(params, 'max', 'max-date')[0];

@@ -39,33 +39,34 @@ export default async (req, res) => {
   const { parameters, data: request_1 } = await eventsQuery(req.query);
   const _format = parameters?.format || parameters?.formats;
   if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
-    return res.status(400).json({ details: "No valid 'format' parameter provided." });
+    return res.status(400)
+      .json({ details: "No valid 'format' parameter provided." });
   }
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
-    return res
-      .status(400)
+    return res.status(400)
       .json({ details: "'time_interval' parameter must be greater than zero." });
   }
   if (!request_1[0]) {
-    return res.status(404).json({ details: 'No event data was found.' });
+    return res.status(404)
+      .json({ details: 'No event data was found.' });
   }
 
   // Get unique formats in matched events
-  const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))].filter(
-    item => MTGO.FORMATS.includes(item)
-  );
+  const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))]
+    .filter(item => MTGO.FORMATS.includes(item));
 
   const request_2 = await sql.unsafe(`
         SELECT * from results
-        WHERE event in (${request_1.map(obj => obj.uid)})
-        AND archetype::TEXT != '{}';
+        WHERE event in (${request_1.map(obj => obj.uid)});
     `);
   if (!request_2[0]) {
-    return res.status(404).json({ details: 'No archetype data was found.' });
+    return res.status(404)
+      .json({ details: 'No archetype data was found.' });
   }
 
   const archetypes = request_2
     .map(obj => {
+      if (obj.archetype === {}) return;
       const archetype0 = obj.archetype[Object.keys(obj.archetype)[0]];
       if (!archetype0?.uid || archetype0?.uid == null) return;
       return {
@@ -84,8 +85,7 @@ export default async (req, res) => {
         deck_uid: obj.uid,
         event_uid: obj.event,
       };
-    })
-    .filter(Boolean);
+    }).filter(Boolean);
 
   const cards = archetypes
     .map(obj => {
@@ -97,9 +97,7 @@ export default async (req, res) => {
         ...card,
         event_uid: obj.event_uid
       }));
-    })
-    .filter(Boolean)
-    .flat(1);
+    }).filter(Boolean).flat(1);
 
   return res.status(200).json({
     object: 'collection',
@@ -116,11 +114,18 @@ export default async (req, res) => {
         return {
           [format]: {
             events: {
-              object: 'collection',
+              object: 'catalog',
               count: _events?.length,
               unique: [...new Set(_events.map(obj => obj.type))].length,
               types: [...new Set(_events.map(obj => obj.type))],
-              data: _events.map(obj => ({ object: 'event', ...obj })),
+              data: _events.map(obj => ({
+                object: 'event',
+                ...obj,
+                stats: {
+                  players: request_2.filter(_obj => obj.uid == _obj.event).length,
+                  archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
+                },
+              })),
             },
             archetypes: {
               object: 'catalog',
