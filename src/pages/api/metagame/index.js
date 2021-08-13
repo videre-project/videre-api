@@ -101,6 +101,20 @@ export default async (req, res) => {
         );
         return {
           [format]: {
+            events: {
+              object: 'catalog',
+              count: _events?.length,
+              unique: [...new Set(_events.map(obj => obj.type))].length,
+              types: [...new Set(_events.map(obj => obj.type))],
+              data: _events.map(obj => ({
+                object: 'event',
+                ...obj,
+                stats: {
+                  count_players: request_2.filter(_obj => obj.uid == _obj.event).length,
+                  count_archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
+                },
+              })),
+            },
             archetypes: {
               object: 'catalog',
               count: request_2?.length,
