@@ -25,11 +25,8 @@ export default async (req, res) => {
       if (obj.parameter == 'cardname') {
         const request = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${obj.value}`)
           .then(response => response.json());
-        if (!request?.name) {
-          ignoredGroups.push(obj.group);
-        } else {
-          return { ...obj, value: request?.name || null };
-        }
+        if (!request?.name) ignoredGroups.push(obj.group);
+        return { ...obj, value: request?.name || null };
       }
       if (obj.parameter == 'quantity') {
         if (isNaN(obj.value)) {
