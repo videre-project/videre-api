@@ -98,29 +98,8 @@ export const pruneObjectKeys = object => {
 };
 
 /**
- * @typedef {string} date - Hyphen-separated date in MM/DD/YYYY or YYYY/MM/DD format.
- * @typedef {object} catalog - An object-array of references to objects.
- */
-
-/**
  * Queries database, accepts parameters and array of uids to filter events from.
- *
- * @async
- *
- * @param       {string}        [format]            - Format to return results from.
- * @param       {string}        [type]              - Event type to return results from.
- * @param       {integer}       [time_interval]     - Number of days to return results from
- *                                                    (ignored when both `min_date` and
- *                                                    `max_date` are provided).
- * @param       {integer}       [offset]            - Offset in days to offset `time_interval`
- *                                                    or `min_date` / `max_date`.
- * @param       {date}          [min_date]          - Minimum date to return results from in
- *                                                    `MM/DD/YYYY` or `YYYY/MM/DD` format.
- * @param       {date}          [max_date]          - Maximum date to return results from in
- *                                                    `MM/DD/YYYY` or `YYYY/MM/DD` format.
- * @param       {catalog}       [uids]              - List of uids to filter selection from.
- */
-
+*/
 export const eventsQuery = async (query, uids) => {
   const params = removeDuplicates(query);
 
@@ -129,7 +108,7 @@ export const eventsQuery = async (query, uids) => {
     const text = obj?.match(/[a-zA-Z\-]+/g).join('');
     return text.charAt(0).toUpperCase() + text.slice(1);
   });
-  const _type = getParams(query, 't', 'type').map(obj => {
+  const _type = getParams(query, 't', 'type', 'event_type').map(obj => {
     const text = obj
       .replaceAll(' ', '-')
       ?.match(/[a-zA-Z\-]+/g)

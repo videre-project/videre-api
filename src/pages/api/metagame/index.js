@@ -2,39 +2,6 @@ import MTGO from 'data/mtgo';
 import { sql, dynamicSortMultiple } from 'utils/database';
 import { eventsQuery } from 'utils/querybuilder';
 
-/**
- * @typedef {string} date - Hyphen-separated date in MM/DD/YYYY or YYYY/MM/DD format.
- * @typedef {object} collection - An object-array of original objects.
- * @typedef {object} catalog - An object-array of references to objects.
- */
-
-/**
- * Root Metagame Endpoint
- *
- * @access public - https://api.videreproject.com/metagame
- *
- * Returns metagame data by events collection, archetypes and cards
- * catalog matching a specified format and date range or time interval.
- *
- * @async
- *
- * @param       {string}        format              - Format to return results from (required).
- * @param       {integer}       [time_interval=14]  - Number of days to return results from
- *                                                    (ignored when both `min_date` and
- *                                                    `max_date` are provided).
- * @param       {integer}       [offset]            - Offset in days to offset `time_interval`
- *                                                    or `min_date` / `max_date`.
- * @param       {date}          [min_date]          - Minimum date to return results from in
- *                                                    `MM/DD/YYYY` or `YYYY/MM/DD` format.
- * @param       {date}          [max_date]          - Maximum date to return results from in
- *                                                    `MM/DD/YYYY` or `YYYY/MM/DD` format.
- *
- * @returns     {object}        {  events: {object}, archetypes: {object}, cards: {object} }
- * @property    {collection}    events              - Collection of events data is sourced from.
- * @property    {catalog}       archetypes          - Catalog of unique archetypes and aggregate.
- * @property    {catalog}       events              - Catalog of unique cards and aggregate.
- *
- */
 export default async (req, res) => {
   const { parameters, data: request_1 } = await eventsQuery(req.query);
   const _format = parameters?.format || parameters?.formats;
@@ -60,7 +27,7 @@ export default async (req, res) => {
     ? {
         warnings: [
           ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+          ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
         ]
       }
     : {};
@@ -130,20 +97,6 @@ export default async (req, res) => {
         );
         return {
           [format]: {
-            events: {
-              object: 'catalog',
-              count: _events?.length,
-              unique: [...new Set(_events.map(obj => obj.type))].length,
-              types: [...new Set(_events.map(obj => obj.type))],
-              data: _events.map(obj => ({
-                object: 'event',
-                ...obj,
-                stats: {
-                  players: request_2.filter(_obj => obj.uid == _obj.event).length,
-                  archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
-                },
-              })),
-            },
             archetypes: {
               object: 'catalog',
               count: request_2?.length,

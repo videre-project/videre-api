@@ -5,8 +5,10 @@ import { getParams, eventsQuery } from 'utils/querybuilder';
 export default async (req, res) => {
   const _uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
   const uids = _uids.map(id =>
-    [...id.split(',')].map(_id => _id.match(/[0-9]+/g).join('')) || null
-  ).flat(1).filter(Boolean);
+      [...id.split(',')].map(_id =>
+        _id.match(/[0-9]+/g).join('')
+      ) || null
+    ).flat(1).filter(Boolean);
   if (!uids?.length) {
     return res.status(400).json({
       details: `No valid 'eventID' ${ uids?.length == 1 ? 'parameter' : 'parameters' } provided.`
@@ -36,13 +38,18 @@ export default async (req, res) => {
     !([...new Set(request_1.map(obj => obj.uid.toString()))].includes(uid))
   );
 
-  const warnings = [...unmatchedFormats, ...unmatchedTypes, ...unmatchedUIDs].length > 0
+  const warnings = [...unmatchedFormats, ...unmatchedTypes, ...unmatchedUIDs].length
     ? {
-        warnings: [
-          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
-          ...unmatchedUIDs.map(uid => `The eventID parameter '${uid}' could not be found.`)
-        ]
+        warnings: [...unmatchedFormats, ...unmatchedTypes].length
+          // Invalid format and/or event types might create erronous warnings for invalid event ids.
+          ? [
+            ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+            ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
+          ]
+          // Show invalid event ids once format type and/or event type is valid.
+          : [
+            ...unmatchedUIDs.map(uid => `The event id parameter '${uid}' could not be found.`)
+          ]
       }
     : {};
 

@@ -108,9 +108,10 @@ export default async (req, res) => {
       : [parameters?.type]
     ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
     .filter(Boolean);
+    
   if ([...unmatchedFormats, ...unmatchedTypes].length) warnings.warnings = {
     ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-    ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
+    ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
     ...warnings?.warnings
   };
 
@@ -129,30 +130,6 @@ export default async (req, res) => {
   if (!request_2[0]) {
     return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
   }
-
-  const archetypes = request_2
-    .map(obj => {
-      if (obj.archetype === {}) return;
-      const archetype0 = obj.archetype[Object.keys(obj.archetype)[0]];
-      if (!archetype0?.uid || archetype0?.uid == null) return;
-      return {
-        uid: archetype0.uid,
-        displayName: [...archetype0.alias, archetype0.displayName].filter(Boolean)[0],
-        deck: [
-          ...obj.deck?.mainboard.map(_obj => ({
-            ..._obj,
-            container: 'mainboard',
-          })),
-          ...obj.deck?.sideboard.map(_obj => ({
-            ..._obj,
-            container: 'sideboard',
-          })),
-        ],
-        deck_uid: obj.uid,
-        event_uid: obj.event,
-      };
-    })
-    .filter(Boolean);
 
   const decks = request_2
     .map(obj => {
@@ -197,7 +174,7 @@ export default async (req, res) => {
               .filter(_data => {
                 const _filter = _query
                   .map(_condition => {
-                    const { _group, parameter, operator, value } = _condition;
+                    const { _, parameter, operator, value } = _condition;
                     switch (operator) {
                       case '>=':
                         return _data[parameter] >= value;
@@ -286,30 +263,7 @@ export default async (req, res) => {
           ).join(' and ')
       ).flat(1),
     data: formats
-        .map(format => {
-          const _events = request_1.filter(_obj => _obj.format.toLowerCase() === format);
-          const _archetypes = archetypes.filter(archetype =>
-            _events.map(_obj => _obj.uid).includes(archetype.event_uid)
-          );
-          return {
-            [format]: {
-              events: {
-                object: 'catalog',
-                count: request_1.count,
-                unique: [...new Set(_events.map(obj => obj.type))].length,
-                types: [...new Set(_events.map(obj => obj.type))],
-                data: _events.map(obj => ({
-                    object: 'event',
-                    ...obj,
-                    stats: {
-                      players: request_2.filter(_obj => obj.uid == _obj.event).length,
-                      archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
-                    },
-                  })),
-              },
-              archetypes: cards[format]
-            },
-          }
-        }).flat(1).reduce((a, b) => ({ ...a, ...b })),
+      .map(format => ({ [format]: { archetypes: cards[format] } }))
+      .flat(1).reduce((a, b) => ({ ...a, ...b })),
   });
 };
