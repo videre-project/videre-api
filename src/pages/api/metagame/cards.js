@@ -27,6 +27,7 @@ export default async (req, res) => {
           .then(response => response.json());
         if (!request?.name) {
           ignoredGroups.push(obj.group);
+        } else {
           return { ...obj, value: request?.name || null };
         }
       }
