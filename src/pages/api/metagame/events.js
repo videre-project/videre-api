@@ -3,6 +3,7 @@ import { sql } from 'utils/database';
 import { getParams, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
+  // Parse and pre-validate 'uids' parameter
   const _uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
   const uids = _uids.map(id =>
       [...id.split(',')].map(_id =>
@@ -15,7 +16,10 @@ export default async (req, res) => {
     });
   }
 
+  // Get event catalog and parsed parameters.
   const { parameters, data: request_1 } = await eventsQuery(req.query, uids);
+
+  // Handle erronous parameters.
   const _format = [...(parameters?.format || parameters?.formats)];
   if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
     return res.status(400).json({ details: "No valid 'format' parameter provided." });
@@ -23,21 +27,19 @@ export default async (req, res) => {
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
     return res.status(400).json({ details: "'time_interval' parameter must be greater than zero." });
   }
-
   const unmatchedFormats = (typeof(parameters?.format) == 'object'
       ? [...new Set(parameters?.format)]
       : [parameters?.format]
     ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
     .filter(Boolean);
-  const unmatchedTypes = (typeof(parameters?.type) == 'object'
-      ? [...new Set(parameters?.type)]
-      : [parameters?.type]
+  const unmatchedTypes = (typeof((parameters?.type || parameters?.types)) == 'object'
+      ? [...new Set((parameters?.type || parameters?.types))]
+      : [(parameters?.type || parameters?.types)]
     ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
     .filter(Boolean);
   const unmatchedUIDs = [...new Set(uids)].filter(uid =>
     !([...new Set(request_1.map(obj => obj.uid.toString()))].includes(uid))
   );
-
   const warnings = [...unmatchedFormats, ...unmatchedTypes, ...unmatchedUIDs].length
     ? {
         warnings: [...unmatchedFormats, ...unmatchedTypes].length
@@ -52,15 +54,15 @@ export default async (req, res) => {
           ]
       }
     : {};
-
   if (!request_1[0]) {
     return res.status(404).json({ details: 'No event data was found.', ...warnings });
   }
 
-  // Get unique formats in matched events
+  // Get unique formats from matched events.
   const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))]
     .filter(item => MTGO.FORMATS.includes(item));
 
+  // Get event results from event catalog.
   const request_2 = await sql.unsafe(`
         SELECT * from results
         WHERE event in (${request_1.map(obj => obj.uid)});
@@ -69,11 +71,12 @@ export default async (req, res) => {
     return res.status(404).json({ details: 'No player data was found.', ...warnings });
   }
 
+  // Parse results for valid archetypes.
   const archetypes = request_2
     .map(obj => {
       if (obj.archetype === {}) return;
       const archetype0 = obj.archetype[Object.keys(obj.archetype)[0]];
-      if (!archetype0?.uid || archetype0?.uid == null) return;
+      if (!archetype0?.uid) return;
       return {
         uid: archetype0.uid,
         displayName: [...archetype0.alias, archetype0.displayName].filter(Boolean)[0],
@@ -93,6 +96,7 @@ export default async (req, res) => {
     })
     .filter(Boolean);
 
+  // Return catalog object.
   return res.status(200).json({
     object: 'catalog',
     ...warnings,

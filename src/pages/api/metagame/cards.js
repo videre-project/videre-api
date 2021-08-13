@@ -3,7 +3,7 @@ import { sql, dynamicSortMultiple } from 'utils/database';
 import { getQueryArgs, groupQuery, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
-  // Group query parameters by named params and aliases
+  // Group query parameters by named params and aliases.
   const queryParams = groupQuery({
     query: getQueryArgs(req?.query).flat(1),
     _mainParam: ['card', 'name', 'cardname'],
@@ -11,14 +11,14 @@ export default async (req, res) => {
     _param2: ['is', 'c', 'cont', 'container'],
   });
 
-  // Match query against params and extract query logic
+  // Match query against params and extract query logic.
   const _query = [...new Set(queryParams.map(obj => obj.group))]
     .map(group => queryParams.filter(obj => obj.group == group)).flat(1)
   if (!_query?.length) {
     return res.status(400).json({ details: "You didn't enter anything to search for." });
   }
 
-  // Remove unmatched cards from query conditions
+  // Remove unmatched cards from query conditions.
   let ignoredGroups = [];
   let query = await Promise.all(_query
     .map(async obj => {
@@ -43,12 +43,10 @@ export default async (req, res) => {
       return obj;
     }).filter(Boolean));
 
-  let warnings = ignoredGroups.length > 0
+  // Create warnings for invalid parameters.
+  let warnings = ignoredGroups.length
     ? {
-        warnings: [
-          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-          ...unmatchedTypes.map(type => `The type parameter '${type}' does not exist.`),
-          ...[...new Set(query.map(obj => obj.group))]
+        warnings: [...new Set(query.map(obj => obj.group))]
             .filter(Boolean)
             .filter(group => ignoredGroups.includes(group))
             .map((group, i) => {
@@ -82,11 +80,12 @@ export default async (req, res) => {
                 `Condition ${ group } “${ condition }” was ignored.`
               ].join(' ').replace(/\s+/g,' ').trim();
             }).flat(1),
-        ]
       }
     : {};
 
+  // Filter query for valid query conditions.
   query = query.filter(obj => !ignoredGroups.includes(obj.group));
+  // Throw error if no valid query conditions are found.
   if (!query?.length) {
     return res.status(400).json({
       details: `Provided query ${
@@ -96,33 +95,36 @@ export default async (req, res) => {
     });
   }
 
+  // Get event catalog and parsed parameters.
   const { parameters, data: request_1 } = await eventsQuery(req.query);
 
+  // Handle erronous parameters.
   const unmatchedFormats = (typeof(parameters?.format) == 'object'
       ? [...new Set(parameters?.format)]
       : [parameters?.format]
     ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
     .filter(Boolean);
-  const unmatchedTypes = (typeof(parameters?.type) == 'object'
-      ? [...new Set(parameters?.type)]
-      : [parameters?.type]
+  const unmatchedTypes = (typeof((parameters?.type || parameters?.types)) == 'object'
+      ? [...new Set((parameters?.type || parameters?.types))]
+      : [(parameters?.type || parameters?.types)]
     ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
     .filter(Boolean);
-    
-  if ([...unmatchedFormats, ...unmatchedTypes].length) warnings.warnings = {
-    ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-    ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
-    ...warnings?.warnings
-  };
-
+  if ([...unmatchedFormats, ...unmatchedTypes].length) {
+    warnings.warnings = {
+      ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
+      ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
+      ...warnings?.warnings
+    };
+  }
   if (!request_1[0]) {
     return res.status(404).json({ details: 'No event data was found.', ...warnings });
   }
 
-  // Get unique formats in matched events
+  // Get unique formats from matched events.
   const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))]
     .filter(item => MTGO.FORMATS.includes(item));
 
+  // Get event results from event catalog.
   const request_2 = await sql.unsafe(`
     SELECT * from results
     WHERE event in (${request_1.map(obj => obj.uid)});
@@ -131,6 +133,7 @@ export default async (req, res) => {
     return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
   }
 
+  // Parse results for valid archetype decklists.
   const decks = request_2
     .map(obj => {
       if (obj.archetype === {}) return;
@@ -157,6 +160,7 @@ export default async (req, res) => {
       }));
     }).filter(Boolean).flat(1);
 
+  // Parse archetype decklists for valid cards and filter against query conditions.
   const cards = formats
     .map(format => {
       const _formatData = decks.filter(card =>
@@ -245,6 +249,7 @@ export default async (req, res) => {
     })
     .reduce((a, b) => ({ ...a, ...b }));
 
+  // Return collection object.
   return res.status(200).json({
     object: 'collection',
     ...warnings,

@@ -43,10 +43,7 @@ export function dynamicSort(property) {
     sortOrder = -1;
     property = property.substr(1);
   }
-  return function (a, b) {
-    /* next line works with strings and numbers,
-     * and you may want to customize it to your needs
-     */
+  return (a, b) => {
     const result = a[property] < b[property] ? -1 : a[property] > b[property] ? 1 : 0;
     return result * sortOrder;
   };
@@ -57,7 +54,7 @@ export function dynamicSort(property) {
  */
 export function dynamicSortMultiple() {
   const props = arguments;
-  return function (obj1, obj2) {
+  return (obj1, obj2) => {
     let i = 0,
       result = 0,
       numberOfProperties = props.length;

@@ -3,9 +3,15 @@ import MTGO from 'data/mtgo';
 
 const toPascalCase = text => text.charAt(0).toUpperCase() + text.slice(1);
 
+/**
+ * Get request parameters by alias.
+ */
 export const getParams = (query, ...props) =>
   [].concat.apply([], props?.map(prop => query?.[prop]).filter(Boolean));
 
+/**
+ * Parse arguments from request query parameter.
+ */
 export const getQueryArgs = query =>
   getParams(query, 'q', 'query').map(obj => {
     let _query = obj.trim().split(' ');
@@ -24,8 +30,11 @@ export const getQueryArgs = query =>
     return args.filter(_obj => />=|<=|>|<|=/g.test(_obj));
   });
 
+/**
+ * Group query parameters by main query parameter type.
+ */
 export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => {
-  // Enumerate parameters to declare final item in array as parameter name
+  // Enumerate parameters to declare final item in array as parameter name.
   const mainParam = _mainParam?.slice(-1)[0];
   const param1 = _param1?.slice(-1)[0];
   const param2 = _param2?.slice(-1)[0];
@@ -76,7 +85,7 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
 };
 
 /**
- * Removes duplicate query parameters
+ * Removes duplicate query parameters.
  */
 export const removeDuplicates = query =>
  Object.keys(query)
@@ -90,7 +99,9 @@ export const removeDuplicates = query =>
    }))
    .reduce((r, c) => Object.assign(r, c), {});
 
-
+/**
+ * Removes undefined object keys.
+ */
 export const pruneObjectKeys = object => {
   return Object.entries(object)
     .filter(([_, v]) => (typeof v == 'object' ? v?.length : v != null))
@@ -103,18 +114,15 @@ export const pruneObjectKeys = object => {
 export const eventsQuery = async (query, uids) => {
   const params = removeDuplicates(query);
 
-  // Enumerate and parse arguments from query
+  // Enumerate and parse arguments from query.
   const _format = getParams(query, 'f', 'fmt', 'format').map(obj => {
     const text = obj?.match(/[a-zA-Z\-]+/g).join('');
     return text.charAt(0).toUpperCase() + text.slice(1);
   });
   const _type = getParams(query, 't', 'type', 'event_type').map(obj => {
-    const text = obj
-      .replaceAll(' ', '-')
-      ?.match(/[a-zA-Z\-]+/g)
+    const text = obj.replaceAll(' ', '-')?.match(/[a-zA-Z\-]+/g)
       .map(x =>
-        x
-          .split(/-/g)
+        x.split(/-/g)
           .map(_obj => {
             return _obj.charAt(0).toUpperCase() + _obj.slice(1);
           })
@@ -124,12 +132,14 @@ export const eventsQuery = async (query, uids) => {
     return text.join('');
   });
   const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0])
-    || uids ? undefined : 2 * 7;
+    || uids
+      ? undefined
+      : 2 * 7;
   const offset = getParams(params, 'o', 'ofs', 'offset')[0];
   const _min_date = getParams(params, 'min', 'min-date')[0];
   const _max_date = getParams(params, 'max', 'max-date')[0];
 
-  // Format prettified dates from query string
+  // Format prettified dates from query string.
   const min_date = _min_date?.length
     ? new Intl.DateTimeFormat('en-US').format(
         new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
@@ -153,23 +163,18 @@ export const eventsQuery = async (query, uids) => {
           `format in (${(
             _format?.length
               ? _format
-              : MTGO.FORMATS.map(obj =>
-                toPascalCase(obj?.match(/[a-z]+/gi).join(''))
-              )
-            ).map(obj => `'${obj}'`)
-            .join()})`,
+              : MTGO.FORMATS.map(obj => toPascalCase(obj?.match(/[a-z]+/gi).join('')))
+            ).map(obj => `'${obj}'`).join()})`,
           `type in (${(
             _type?.length
               ? _type
               : MTGO.EVENT_TYPES.map(obj => {
-                const text = obj
-                  ?.match(/[a-zA-Z\-]+/g)
+                const text = obj?.match(/[a-zA-Z\-]+/g)
                   .map(x => x.split(/-/g).map(toPascalCase).join(' '))
                   .flat(1);
                 return text.join('');
               })
-            ).map(obj => `'${obj}'`)
-            .join()})`,
+            ).map(obj => `'${obj}'`).join()})`,
           !isNaN(_time_interval)
             ? `date::DATE ${min_date && !max_date ? '<=' : '>='} ${
                 min_date && !max_date
@@ -179,21 +184,29 @@ export const eventsQuery = async (query, uids) => {
                   : 'CURRENT_DATE'
               } ${min_date && !max_date ? '+' : '-'} ${_time_interval}::INT`
             : '',
-          min_date ? `date::DATE >= '${min_date}'::DATE` : '',
-          max_date ? `date::DATE <= '${max_date}'::DATE` : '',
-          uids?.length ? `uid IN (${uids})` : '',
-        ]
-          .filter(Boolean)
-          .join(' AND ')}
+          min_date
+            ? `date::DATE >= '${min_date}'::DATE`
+            : '',
+          max_date
+            ? `date::DATE <= '${max_date}'::DATE`
+            : '',
+          uids?.length
+            ? `uid IN (${uids})`
+            : '',
+        ].filter(Boolean).join(' AND ')}
     ) ORDER BY date::DATE DESC, uid DESC;
   `);
 
   return {
     parameters: pruneObjectKeys({
       [_format?.length == 1 ? 'format' : 'formats']:
-        _format?.length == 1 ? _format[0] : _format,
+        _format?.length == 1
+          ? _format[0]
+          : _format,
       [_type?.length == 1 ? 'type' : 'types']:
-        _type?.length == 1 ? _type[0] : _type,
+        _type?.length == 1
+          ? _type[0]
+          : _type,
       time_interval: _time_interval,
       offset,
       min_date: _min_date,
