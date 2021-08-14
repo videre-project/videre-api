@@ -138,9 +138,9 @@ export default async (req, res) => {
                   ...obj,
                   stats: {
                     numPlayers: eventRecords[obj.uid].numPlayers,
-                    approx_swiss: eventRecords[obj.uid].triangle,
+                    approxSwiss: eventRecords[obj.uid].triangle,
                     obsPlayers: eventRecords[obj.uid].truncPlayers,
-                    obs_swiss: eventRecords[obj.uid].truncTriangle,
+                    obsSwiss: eventRecords[obj.uid].truncTriangle,
                     obsArchetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
                   },
                   data: request_2.filter(_obj => _obj.event == obj.uid)
