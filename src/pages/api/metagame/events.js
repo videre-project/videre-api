@@ -113,9 +113,9 @@ export default async (req, res) => {
     })
     .filter(Boolean);
 
-  // Return catalog object.
+  // Return collection object.
   return res.status(200).json({
-    object: 'catalog',
+    object: 'collection',
     ...warnings,
     parameters: parameters,
     data: formats
@@ -135,7 +135,8 @@ export default async (req, res) => {
                   object: 'event',
                   uid: obj.uid,
                   url: `https://magic.wizards.com/en/articles/archive/mtgo-standings/${obj.uri}`,
-                  ...obj,
+                  type: obj.type,
+                  date: obj.date,
                   stats: {
                     numPlayers: eventRecords[obj.uid].numPlayers,
                     approxSwiss: eventRecords[obj.uid].triangle,
@@ -161,8 +162,6 @@ export default async (req, res) => {
                         object: 'event-result',
                         uid: _obj.uid,
                         username: _obj.username,
-                        record: _obj.stats.record,
-                        event_id: _obj.event,
                         url: _obj.url,
                         archetype: {
                           object: 'archetype',
@@ -187,6 +186,7 @@ export default async (req, res) => {
                             })),
                         },
                         stats: {
+                          record: _obj.stats.record,
                           points: _obj.stats.points,
                           ...tiebreakers
                         }

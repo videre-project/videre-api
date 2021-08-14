@@ -127,7 +127,8 @@ export default async (req, res) => {
                 object: 'event',
                 uid: obj.uid,
                 url: `https://magic.wizards.com/en/articles/archive/mtgo-standings/${obj.uri}`,
-                ...obj,
+                type: obj.type,
+                date: obj.date,
                 stats: {
                   numPlayers: eventRecords[obj.uid].numPlayers,
                   approxSwiss: eventRecords[obj.uid].triangle,
