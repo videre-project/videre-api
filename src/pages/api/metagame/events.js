@@ -152,9 +152,14 @@ export default async (req, res) => {
                       const tiebreakers = _obj.stats?.GWP
                         ? {
                             tiebreakers: {
-                              GWP: _obj.stats?.GWP,
-                              OGWP: _obj.stats?.OGWP,
-                              OMWP: _obj.stats?.OMWP,
+                              MWP: (parseInt(_obj.stats.record.split('-')[0])
+                                / _obj.stats.record.split('-')
+                                    .map(x => parseInt(x))
+                                    .reduce((a, b) => a + b, 0)
+                                * 100).toFixed(2) + '%',
+                              GWP: ((_obj.stats?.GWP || 0) * 100).toFixed(2) + '%',
+                              OGWP: ((_obj.stats?.OGWP || 0) * 100).toFixed(2) + '%',
+                              OMWP: ((_obj.stats?.OMWP || 0) * 100).toFixed(2) + '%',
                             }
                           }
                         : {};

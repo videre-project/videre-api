@@ -58,11 +58,10 @@ export const calculateEventStats = (data) => {
                     Math.abs(rdDistEstimate[Object.keys(bins)[n]] - bins[Object.keys(bins)[n]])
             }
             
-            // Handle top 16 / 8 only qualifier challenges/showcases.
+            // Handle prelims and top 16 only premier events.
             if (
-                numRounds > 5 &&
                 i == Object.keys(bins).length - 1 &&
-                [16, 8].includes(Object.values(bins).reduce((a, b) => a + b))
+                32 > Object.values(bins).reduce((a, b) => a + b)
             ) errorCount = 0;
 
             if (errorCount == 0) numPlayers = playersEstimate;
