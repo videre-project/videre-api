@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "jsdom": "^16.6.0",
-    "next": "^11.0.1",
+    "next": "^11.1.0",
     "node-fetch": "^2.6.1",
     "postgres": "^1.0.2",
     "react": "^17.0.2",
