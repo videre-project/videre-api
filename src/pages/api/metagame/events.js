@@ -1,5 +1,6 @@
 import MTGO from 'data/mtgo';
 import { sql } from 'utils/database';
+import { calculateEventStats } from 'utils/swiss';
 import { getParams, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
@@ -10,7 +11,7 @@ export default async (req, res) => {
         _id.match(/[0-9]+/g).join('')
       ) || null
     ).flat(1).filter(Boolean);
-  if (!uids?.length) {
+  if (_uids.length && !uids?.length) {
     return res.status(400).json({
       details: `No valid 'eventID' ${ uids?.length == 1 ? 'parameter' : 'parameters' } provided.`
     });
@@ -64,12 +65,28 @@ export default async (req, res) => {
 
   // Get event results from event catalog.
   const request_2 = await sql.unsafe(`
-        SELECT * from results
-        WHERE event in (${request_1.map(obj => obj.uid)});
-    `);
+    SELECT * from results
+    WHERE event in (${request_1.map(obj => obj.uid)});
+  `);
   if (!request_2[0]) {
     return res.status(404).json({ details: 'No player data was found.', ...warnings });
   }
+  // Get approx total players and swiss distribution per event.
+  const eventRecords = [...new Set(request_2.map(obj => obj.event))]
+    .map(uid => {
+      const records = request_2
+        .filter(obj => obj.event == uid)
+        .map(obj => obj?.stats?.record);
+      const recordData = [...new Set(records)].map(record => ({
+          record,
+          count: records.filter(_record => _record == record).length
+        })).sort((a, b) =>
+          parseInt(b.record.split('-')[0]) - parseInt(a.record.split('-')[0])
+        );
+      return {
+        [uid]: calculateEventStats(recordData)
+      };
+    }).flat(1).reduce((a, b) => ({ ...a, ...b }));
 
   // Parse results for valid archetypes.
   const archetypes = request_2
@@ -116,10 +133,15 @@ export default async (req, res) => {
               types: [...new Set(_events.map(obj => obj.type))],
               data: _events.map(obj => ({
                   object: 'event',
+                  uid: obj.uid,
+                  url: `https://magic.wizards.com/en/articles/archive/mtgo-standings/${obj.uri}`,
                   ...obj,
                   stats: {
-                    players: request_2.filter(_obj => obj.uid == _obj.event).length,
-                    archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
+                    numPlayers: eventRecords[obj.uid].numPlayers,
+                    approx_swiss: eventRecords[obj.uid].triangle,
+                    obsPlayers: eventRecords[obj.uid].truncPlayers,
+                    obs_swiss: eventRecords[obj.uid].truncTriangle,
+                    obsArchetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
                   },
                   data: request_2.filter(_obj => _obj.event == obj.uid)
                     .map(_obj => {
@@ -145,7 +167,7 @@ export default async (req, res) => {
                         archetype: {
                           object: 'archetype',
                           uid: archetype0?.uid || null,
-                          displayName: [...archetype0?.alias, archetype0?.displayName]
+                          displayName: [...archetype0?.alias || [], archetype0?.displayName || []]
                             .filter(Boolean)[0] || null,
                         },
                         deck: {
