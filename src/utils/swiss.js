@@ -52,17 +52,21 @@ export const calculateEventStats = (data) => {
             const playersEstimate = Math.ceil(bins[result] / (rdDist[result] / 10 ** 4));
 
             let rdDistEstimate = calculateTriangle(playersEstimate, numRounds);
-            console.log(i, 1, rdDistEstimate);
             let errorCount = 0;
             for (let n = 0; n < Object.keys(bins).length; n++) {
                 errorCount -=
                     Math.abs(rdDistEstimate[Object.keys(bins)[n]] - bins[Object.keys(bins)[n]])
             }
-            if (errorCount == 0) numPlayers = playersEstimate;
+            
+            // Handle top 16 / 8 only qualifier challenges/showcases.
             if (
-                    Object.values(bins).reduce((a, b) => a + b) == 32 ||
-                    !numPlayers.length && i == Object.keys(bins).length - 1
-                ) {
+                numRounds > 5 &&
+                i == Object.keys(bins).length - 1 &&
+                [16, 8].includes(Object.values(bins).reduce((a, b) => a + b))
+            ) errorCount = 0;
+
+            if (errorCount == 0) numPlayers = playersEstimate;
+            if (errorCount !== 0 && i == Object.keys(bins).length - 1) {
                 for (let _i = playersEstimate; _i > 0; _i--) {
                     rdDistEstimate = calculateTriangle(_i, numRounds);
                     errorCount = 0;
@@ -73,7 +77,6 @@ export const calculateEventStats = (data) => {
                     if (errorCount == 0) numPlayers = _i;
                 }
             }
-            console.log(i, 2, rdDistEstimate);
         }
     }
     return {

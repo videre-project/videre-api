@@ -1,6 +1,7 @@
 import MTGO from 'data/mtgo';
 import { sql, dynamicSortMultiple } from 'utils/database';
 import { eventsQuery } from 'utils/querybuilder';
+import { calculateEventStats } from 'utils/swiss';
 
 export default async (req, res) => {
   // Get event catalog and parsed parameters.
@@ -48,6 +49,22 @@ export default async (req, res) => {
   if (!request_2[0]) {
     return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
   }
+  // Get approx total players and swiss distribution per event.
+  const eventRecords = [...new Set(request_2.map(obj => obj.event))]
+    .map(uid => {
+      const records = request_2
+        .filter(obj => obj.event == uid)
+        .map(obj => obj?.stats?.record);
+      const recordData = [...new Set(records)].map(record => ({
+          record,
+          count: records.filter(_record => _record == record).length
+        })).sort((a, b) =>
+          parseInt(b.record.split('-')[0]) - parseInt(a.record.split('-')[0])
+        );
+      return {
+        [uid]: calculateEventStats(recordData)
+      };
+    }).flat(1).reduce((a, b) => ({ ...a, ...b }));
 
   // Parse results for valid archetypes.
   const archetypes = request_2
@@ -108,10 +125,15 @@ export default async (req, res) => {
               types: [...new Set(_events.map(obj => obj.type))],
               data: _events.map(obj => ({
                 object: 'event',
+                uid: obj.uid,
+                url: `https://magic.wizards.com/en/articles/archive/mtgo-standings/${obj.uri}`,
                 ...obj,
                 stats: {
-                  count_players: request_2.filter(_obj => obj.uid == _obj.event).length,
-                  count_archetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
+                  numPlayers: eventRecords[obj.uid].numPlayers,
+                  approx_swiss: eventRecords[obj.uid].triangle,
+                  obsPlayers: eventRecords[obj.uid].truncPlayers,
+                  obs_swiss: eventRecords[obj.uid].truncTriangle,
+                  obsArchetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
                 },
               })),
             },
@@ -198,8 +220,6 @@ export default async (req, res) => {
             },
           },
         };
-      })
-      .flat(1)
-      .reduce((a, b) => ({ ...a, ...b })),
+      }).flat(1).reduce((a, b) => ({ ...a, ...b })),
   });
 };
