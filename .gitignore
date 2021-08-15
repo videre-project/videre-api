@@ -4,7 +4,6 @@ build
 db
 .env
 *.log
-.next
 
 # Editor directories and files
 .idea
