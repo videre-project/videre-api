@@ -42,7 +42,7 @@ const getTaggedCards = async tags =>
       if (i > 0) await setDelay(100);
 
       const page = await fetch(tag.url).then(res => res.json());
-      let { has_more, total_cards = 0, data = [] } = page;
+      const { has_more, total_cards = 0, data = [] } = page;
 
       // Handle multiple pages of results.
       if (has_more) {
@@ -50,7 +50,7 @@ const getTaggedCards = async tags =>
         for (let i = 2; i <= numPages; i++) {
           await setDelay(100);
           const nextPage = await fetch(tag.url).then(res => res.json());
-          data = data.concat(nextPage?.data);
+          data.push(...nextPage.data);
         }
       }
 
@@ -69,11 +69,7 @@ export default async (req, res) => {
   if (!['functional', 'artwork'].includes(...type)) {
     return res.status(400).json({ details: `'${type}' type parameter does not exist.` });
   }
-  const _tags = getParams(req?.query, 'tag', 'tags')
-    .join(' ')
-    .replaceAll(',', ' ')
-    .split(' ')
-    .filter(Boolean);
+  const _tags = getParams(req?.query, 'tag', 'tags').split(/[\s,]/g).filter(Boolean);
 
   // Create parameters object.
   const parameters = pruneObjectKeys({
