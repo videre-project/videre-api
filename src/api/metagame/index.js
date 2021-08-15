@@ -13,24 +13,34 @@ export default async (req, res) => {
     return res.status(400).json({ details: "No valid 'format' parameter provided." });
   }
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
-    return res.status(400).json({ details: "'time_interval' parameter must be greater than zero." });
+    return res
+      .status(400)
+      .json({ details: "'time_interval' parameter must be greater than zero." });
   }
-  const unmatchedFormats = (typeof(parameters?.format) == 'object'
+  const unmatchedFormats = (
+    typeof parameters?.format == 'object'
       ? [...new Set(parameters?.format)]
       : [parameters?.format]
-    ).filter(format => !(MTGO.FORMATS.includes(format?.toLowerCase())))
+  )
+    .filter(format => !MTGO.FORMATS.includes(format?.toLowerCase()))
     .filter(Boolean);
-  const unmatchedTypes = (typeof((parameters?.type || parameters?.types)) == 'object'
-      ? [...new Set((parameters?.type || parameters?.types))]
-      : [(parameters?.type || parameters?.types)]
-    ).filter(type => !(MTGO.EVENT_TYPES.includes(type?.toLowerCase())))
+  const unmatchedTypes = (
+    typeof (parameters?.type || parameters?.types) == 'object'
+      ? [...new Set(parameters?.type || parameters?.types)]
+      : [parameters?.type || parameters?.types]
+  )
+    .filter(type => !MTGO.EVENT_TYPES.includes(type?.toLowerCase()))
     .filter(Boolean);
   const warnings = [...unmatchedFormats, ...unmatchedTypes].length
     ? {
         warnings: [
-          ...unmatchedFormats.map(format => `The format parameter '${format}' does not exist.`),
-          ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
-        ]
+          ...unmatchedFormats.map(
+            format => `The format parameter '${format}' does not exist.`
+          ),
+          ...unmatchedTypes.map(
+            type => `The event type parameter '${type}' does not exist.`
+          ),
+        ],
       }
     : {};
   if (!request_1[0]) {
@@ -38,13 +48,14 @@ export default async (req, res) => {
   }
 
   // Get unique formats from matched events.
-  const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))]
-    .filter(item => MTGO.FORMATS.includes(item));
+  const formats = [...new Set(request_1.map(obj => obj.format.toLowerCase()))].filter(
+    item => MTGO.FORMATS.includes(item)
+  );
 
   // Get event results from event catalog.
   const request_2 = await sql.unsafe(`
         SELECT * from results
-        WHERE event in (${ request_1.map(obj => obj.uid) });
+        WHERE event in (${request_1.map(obj => obj.uid)});
     `);
   if (!request_2[0]) {
     return res.status(404).json({ details: 'No archetype data was found.', ...warnings });
@@ -55,16 +66,20 @@ export default async (req, res) => {
       const records = request_2
         .filter(obj => obj.event == uid)
         .map(obj => obj?.stats?.record);
-      const recordData = [...new Set(records)].map(record => ({
+      const recordData = [...new Set(records)]
+        .map(record => ({
           record,
-          count: records.filter(_record => _record == record).length
-        })).sort((a, b) =>
-          parseInt(b.record.split('-')[0]) - parseInt(a.record.split('-')[0])
+          count: records.filter(_record => _record == record).length,
+        }))
+        .sort(
+          (a, b) => parseInt(b.record.split('-')[0]) - parseInt(a.record.split('-')[0])
         );
       return {
-        [uid]: calculateEventStats(recordData)
+        [uid]: calculateEventStats(recordData),
       };
-    }).flat(1).reduce((a, b) => ({ ...a, ...b }));
+    })
+    .flat(1)
+    .reduce((a, b) => ({ ...a, ...b }));
 
   // Parse results for valid archetypes.
   const archetypes = request_2
@@ -88,7 +103,8 @@ export default async (req, res) => {
         deck_uid: obj.uid,
         event_uid: obj.event,
       };
-    }).filter(Boolean);
+    })
+    .filter(Boolean);
 
   // Parse archetype decklists for valid cards.
   const cards = archetypes
@@ -99,9 +115,11 @@ export default async (req, res) => {
         archetype_uid: obj.uid,
         cardname: card.cardName,
         ...card,
-        event_uid: obj.event_uid
+        event_uid: obj.event_uid,
       }));
-    }).filter(Boolean).flat(1);
+    })
+    .filter(Boolean)
+    .flat(1);
 
   // Return collection object.
   return res.status(200).json({
@@ -134,7 +152,9 @@ export default async (req, res) => {
                   approxSwiss: eventRecords[obj.uid].triangle,
                   obsPlayers: eventRecords[obj.uid].truncPlayers,
                   obsSwiss: eventRecords[obj.uid].truncTriangle,
-                  obsArchetypes: _archetypes.filter(archetype => obj.uid == archetype.event_uid).length,
+                  obsArchetypes: _archetypes.filter(
+                    archetype => obj.uid == archetype.event_uid
+                  ).length,
                 },
               })),
             },
@@ -221,6 +241,8 @@ export default async (req, res) => {
             },
           },
         };
-      }).flat(1).reduce((a, b) => ({ ...a, ...b })),
+      })
+      .flat(1)
+      .reduce((a, b) => ({ ...a, ...b })),
   });
 };

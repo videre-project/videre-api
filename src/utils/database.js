@@ -20,7 +20,7 @@ export const setDelay = ms => new Promise(res => setTimeout(res, ms));
  * Takes an Array and a grouping function
  * and returns a Map of the array grouped by the grouping function.
  */
- export function groupBy(list, keyGetter) {
+export function groupBy(list, keyGetter) {
   const map = new Map();
   list.forEach(item => {
     const key = keyGetter(item);

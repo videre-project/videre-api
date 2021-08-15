@@ -2,14 +2,7 @@
  * Magic: The Gathering Online supported formats, sanctioned event types, colors, card types, etc.
  */
 const MTGO = {
-  FORMATS: [
-    'standard',
-    'pioneer',
-    'modern',
-    'legacy',
-    'vintage',
-    'pauper'
-  ],
+  FORMATS: ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper'],
   EVENT_TYPES: [
     'mocs',
     'preliminary',
@@ -20,14 +13,7 @@ const MTGO = {
     'players-tour-qualifier',
     'showcase-challenge',
   ],
-  COLORS: [
-    'C',
-    'W',
-    'U',
-    'B',
-    'R',
-    'G'
-  ],
+  COLORS: ['C', 'W', 'U', 'B', 'R', 'G'],
   CARD_TYPES: [
     'Creature',
     'Planeswalker',

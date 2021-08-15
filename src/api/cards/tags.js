@@ -4,9 +4,9 @@ import { setDelay } from 'utils/database';
 import { getParams, removeDuplicates, pruneObjectKeys } from 'utils/querybuilder';
 
 /*
-* Get list of Scryfall tags.
-*/
-const getScryfallTags = async (type) => {
+ * Get list of Scryfall tags.
+ */
+const getScryfallTags = async type => {
   const response = await fetch('https://scryfall.com/docs/tagger-tags');
   const html = await response.text();
   const { document } = new JSDOM(html).window;
@@ -26,16 +26,16 @@ const getScryfallTags = async (type) => {
       });
     });
 
-    return output.filter(obj => type?.length ? type.includes(obj.type) : true);
+    return output.filter(obj => (type?.length ? type.includes(obj.type) : true));
   }, []);
 
   return tags;
 };
 
 /*
-* Fetch Scryfall tags' data by tag.
-*/
-const getTaggedCards = async (tags) =>
+ * Fetch Scryfall tags' data by tag.
+ */
+const getTaggedCards = async tags =>
   await Promise.all(
     tags.map(async (tag, i) => {
       // Ensure 100 ms delay between requests.
@@ -78,13 +78,8 @@ export default async (req, res) => {
   // Create parameters object.
   const parameters = pruneObjectKeys({
     [source?.length == 1 ? 'source' : 'sources']:
-      source?.length == 1
-        ? source[0]
-        : source,
-    [type?.length == 1 ? 'type' : 'types']:
-      type?.length == 1
-        ? type[0]
-        : type,
+      source?.length == 1 ? source[0] : source,
+    [type?.length == 1 ? 'type' : 'types']: type?.length == 1 ? type[0] : type,
     tags: _tags,
   });
 
@@ -135,8 +130,9 @@ export default async (req, res) => {
     );
 
     // Handle invalid tag parameters.
-    const unmatchedTags = (parameters?.tag || parameters?.tags)
-      ?.filter(tag => !tagData.map(obj => obj.name).includes(tag))
+    const unmatchedTags = (parameters?.tag || parameters?.tags)?.filter(
+      tag => !tagData.map(obj => obj.name).includes(tag)
+    );
     const warnings = unmatchedTags.length
       ? { warnings: unmatchedTags.map(tag => `The tag '${tag}' does not exist.`) }
       : {};
@@ -147,8 +143,9 @@ export default async (req, res) => {
       ...warnings,
       parameters: {
         ...parameters,
-        tags: (parameters?.tag || parameters?.tags)
-          ?.filter(tag => tagData.map(obj => obj.name).includes(tag))
+        tags: (parameters?.tag || parameters?.tags)?.filter(tag =>
+          tagData.map(obj => obj.name).includes(tag)
+        ),
       },
       data: {
         tags: {
@@ -160,9 +157,7 @@ export default async (req, res) => {
               name,
               type,
               url,
-              count: uniqueCards.filter(
-                ({ tags }) => tags.includes(name)
-              ).length,
+              count: uniqueCards.filter(({ tags }) => tags.includes(name)).length,
               exclusive: uniqueCards.filter(
                 ({ tags }) => tags.includes(name) && tags.length === 1
               ).length,
