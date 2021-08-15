@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  build-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -16,3 +16,6 @@ jobs:
 
       - name: Check build health
         run: yarn build
+
+      - name: Check for regressions
+        run: yarn lint
