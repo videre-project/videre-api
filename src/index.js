@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = express();
 
-server.use('/api', cors(), helmet(), express.json(), morgan('dev'), api);
+server.use(cors(), helmet(), express.json(), morgan('dev'), api);
 
 server.listen(PORT, error => {
   if (error) throw error;

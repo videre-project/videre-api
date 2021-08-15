@@ -26,7 +26,7 @@
     "postgres": "^1.0.2"
   },
   "scripts": {
-    "dev": "nodemon --exec npm run start",
+    "dev": "docker-compose -f bin/docker-compose.yml up -d && nodemon --exec npm run start",
     "start": "babel-node src",
     "build": "rimraf build && babel src -d build --ignore \"src/**/*.test.js\"",
     "serve": "node build",
