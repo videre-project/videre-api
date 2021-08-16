@@ -19,7 +19,7 @@ export const getQueryArgs = query =>
     let offset = 1;
     _query.forEach((_arg, i) => {
       const condition =
-        (/>=|<=|>|<|=/g.test(_arg) && _arg.replace(/>=|<=|>|<|=/g, '').length) ||
+        (/>=|<=|>|<|=|!=/g.test(_arg) && _arg.replace(/>=|<=|>|<|=|!=/g, '').length) ||
         !args[i - offset];
       if (condition) args.push(_arg);
       else {
@@ -27,7 +27,7 @@ export const getQueryArgs = query =>
         offset++;
       }
     });
-    return args.filter(_obj => />=|<=|>|<|=/g.test(_obj));
+    return args.filter(_obj => />=|<=|>|<|=|!=/g.test(_obj));
   });
 
 /**
@@ -42,7 +42,7 @@ export const groupQuery = ({ query, _mainParam, _param1, _param2, _param3 }) => 
 
   let i = 0;
   let params = query.map(_param => {
-    const [_parameter, value] = _param.split(/>=|<=|>|<|=/g);
+    const [_parameter, value] = _param.split(/>=|<=|>|<|=|!=/g);
     let parameter = [_mainParam, _param1, _param2, _param3]
       .filter(Boolean)
       .map(param =>

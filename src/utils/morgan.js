@@ -39,7 +39,7 @@ export const morganMiddleware = morgan((tokens, req, res) => {
   const status = tokens.status(req, res);
   const statusColor = colors.STATUS?.[status.slice(0,1) + '00'] || '#ffffff';
 
-  const responseTime = tokens['response-time'](req, res)
+  const responseTime = tokens['response-time'](req, res);
 
   const methodPadding = Math.max(...crawlRoutes(API_DIR).map(route =>
     parseRoute(route.slice(API_DIR.length)).length

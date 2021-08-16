@@ -221,7 +221,12 @@ export default async (req, res) => {
                       case '=':
                         return _data[parameter] == value;
                       case '!=':
-                        return _data[parameter] !== value;
+                        const data = formatData
+                          .filter(obj =>
+                            obj.deck_uid == _data.deck_uid
+                            && obj[parameter] == value
+                          )?.length;
+                        return data == 0 && _data[parameter] !== value;
                     }
                   })
                   .filter(Boolean);
