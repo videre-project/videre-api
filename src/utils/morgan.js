@@ -40,6 +40,12 @@ export const morganMiddleware = morgan((tokens, req, res) => {
   const statusColor = colors.STATUS?.[status.slice(0,1) + '00'] || '#ffffff';
 
   const responseTime = tokens['response-time'](req, res);
+  const resonseTimeColor =
+    responseTime <= 500 ? '#00FF00' // Green
+      : responseTime <= 1000 ? '#FFFF00' // Yellow
+        : responseTime <= 3000 ? '#FFA500' // Orange
+          : responseTime <= 5000 ? '#FF0000' // Red
+            : '#800080'; // Purple
 
   const methodPadding = Math.max(...crawlRoutes(API_DIR).map(route =>
     parseRoute(route.slice(API_DIR.length)).length
@@ -57,7 +63,7 @@ export const morganMiddleware = morgan((tokens, req, res) => {
           .replaceAll(',', ' ')
           .slice(0, methodPadding)
       ),
-      chalk.hex('#7E7E89')(`Took ${ chalk.hex('#2ed573')(responseTime) } ms`)
+      chalk.hex('#7E7E89')(`Took ${ chalk.hex(resonseTimeColor)(responseTime) } ms`)
     ].join(chalk.hex('#7E7E89')(chalk.bold(' | ')))
   );
 });
