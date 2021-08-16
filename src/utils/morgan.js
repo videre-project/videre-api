@@ -49,7 +49,6 @@ export const morganMiddleware = morgan((tokens, req, res) => {
     chalk.yellow('[Logs] ') +
     [
       chalk.hex('#7E7E89')(date),
-      chalk.bgHex(statusColor)(chalk.bold(` ${ status } `)),
       chalk.bgHex(methodColor)(chalk.bold(` ${ method } `))
       + ' ' + chalk.hex(methodColor)(
         [apiMethod, new Array(1 + methodPadding).fill(',')]
@@ -57,6 +56,7 @@ export const morganMiddleware = morgan((tokens, req, res) => {
           .replaceAll(',', ' ')
           .slice(0, methodPadding)
       ),
+      chalk.bgHex(statusColor)(chalk.bold(` ${ status } `)),
       chalk.hex('#7E7E89')(`Took ${ chalk.hex('#2ed573')(responseTime) } ms`)
     ].join(chalk.hex('#7E7E89')(chalk.bold(' | ')))
   );
