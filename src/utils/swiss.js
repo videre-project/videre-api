@@ -86,3 +86,12 @@ export const calculateEventStats = data => {
     triangle: calculateTriangle(numPlayers, numRounds),
   };
 };
+
+/**
+ * Converts an integer to an ordinal.
+ */
+export const getNumberWithOrdinal = (n) => {
+  let s = ["th", "st", "nd", "rd"],
+      v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}

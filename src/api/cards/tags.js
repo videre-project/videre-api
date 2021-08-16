@@ -69,7 +69,12 @@ export default async (req, res) => {
   if (!['functional', 'artwork'].includes(...type)) {
     return res.status(400).json({ details: `'${type}' type parameter does not exist.` });
   }
-  const _tags = getParams(req?.query, 'tag', 'tags').split(/[\s,]/g).filter(Boolean);
+  // const _tags = getParams(req?.query, 'tag', 'tags').split(/[\s,]/g).filter(Boolean);
+  const _tags = getParams(req?.query, 'tag', 'tags')
+    .join(' ')
+    .replaceAll(',', ' ')
+    .split(' ')
+    .filter(Boolean);
 
   // Create parameters object.
   const parameters = pruneObjectKeys({
