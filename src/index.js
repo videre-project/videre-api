@@ -41,6 +41,13 @@ crawlRoutes(API_DIR).forEach(route => {
   server.all(parseRoute(route), require(route).default);
 });
 
+// 404 response.
+server.get('*', (req, res) => {
+  res.status(404).json({
+    details: "The requested method does not exist. For more information about this API's published methods and objects, see https://videreproject.com/docs/api."
+  });
+});
+
 server.listen(PORT, error => {
   if (error) throw error;
   console.info(`Listening on port ${PORT}`);
