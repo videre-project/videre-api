@@ -5,7 +5,7 @@ import { getParams, eventsQuery } from 'utils/querybuilder';
 
 export default async (req, res) => {
   // Parse and pre-validate 'uids' parameter
-  const _uids = getParams(req.query, 'id', 'uid', 'event', 'event_id', 'eventID');
+  const _uids = getParams(req.query, 'id', 'uid', 'uids', 'event', 'event_id', 'eventID');
   const uids = _uids
     .map(id => [...id.split(',')].map(_id => _id.match(/[0-9]+/g).join('')) || null)
     .flat(1)

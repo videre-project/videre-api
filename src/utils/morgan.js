@@ -63,7 +63,7 @@ export const morganMiddleware = morgan((tokens, req, res) => {
           .replaceAll(',', ' ')
           .slice(0, methodPadding)
       ),
-      chalk.hex('#7E7E89')(`Took ${ chalk.hex(resonseTimeColor)(responseTime) } ms`)
+      chalk.hex('#7E7E89')('Took ' + chalk.hex(resonseTimeColor)(responseTime) + ' ms')
     ].join(chalk.hex('#7E7E89')(chalk.bold(' | ')))
   );
 });

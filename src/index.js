@@ -34,6 +34,8 @@ server.listen(PORT, error => {
       + chalk.red(`Error: ${error.stack}`)
     );
   };
+  // Clear console
+  process.stdout.write('\x1Bc');
   console.info(
     chalk.cyan('[Server]'),
     chalk.hex('#7E7E89')(`Listening on port ${PORT}`)

@@ -134,11 +134,12 @@ export const eventsQuery = async (query, uids) => {
       .flat(1);
     return text.join('');
   });
-  const _time_interval =
-    parseInt(getParams(params, 'i', 'int', 'interval')[0]) || uids ? undefined : 2 * 7;
+  const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]);
   const offset = getParams(params, 'o', 'ofs', 'offset')[0];
   const _min_date = getParams(params, 'min', 'min-date')[0];
   const _max_date = getParams(params, 'max', 'max-date')[0];
+
+  const time_interval = uids ? undefined : _time_interval || 2 * 7;
 
   // Format prettified dates from query string.
   const min_date = _min_date?.length
@@ -179,14 +180,14 @@ export const eventsQuery = async (query, uids) => {
           )
             .map(obj => `'${obj}'`)
             .join()})`,
-          !isNaN(_time_interval)
+          !isNaN(time_interval)
             ? `date::DATE ${min_date && !max_date ? '<=' : '>='} ${
                 min_date && !max_date
                   ? `'${min_date}'::DATE`
                   : max_date
                   ? `'${max_date}'::DATE`
                   : 'CURRENT_DATE'
-              } ${min_date && !max_date ? '+' : '-'} ${_time_interval}::INT`
+              } ${min_date && !max_date ? '+' : '-'} ${time_interval}::INT`
             : '',
           min_date ? `date::DATE >= '${min_date}'::DATE` : '',
           max_date ? `date::DATE <= '${max_date}'::DATE` : '',
@@ -202,7 +203,7 @@ export const eventsQuery = async (query, uids) => {
       [_format?.length == 1 ? 'format' : 'formats']:
         _format?.length == 1 ? _format[0] : _format,
       [_type?.length == 1 ? 'type' : 'types']: _type?.length == 1 ? _type[0] : _type,
-      time_interval: _time_interval,
+      time_interval: time_interval,
       offset,
       min_date: _min_date,
       max_date: _max_date,

@@ -41,7 +41,17 @@ const calculateTriangle = (players, _rounds) => {
 export const calculateEventStats = data => {
   const numRounds = data[0].record.split('-').reduce((a, b) => Number(a) + Number(b));
   const rdDist = calculateTriangle(10 ** 4, numRounds);
-  const bins = Object.assign({}, ...data.map(obj => ({ [obj.record]: obj.count })));
+  const _bins = Object.assign({}, ...data.map(obj => ({ [obj.record]: obj.count })));
+
+  const bins = Object.assign({}, ...data.map((obj, i) => {
+    if (
+      Object.values(_bins).reduce((a, b) => a + b) < 32
+      && numRounds <= 5
+    ) return { [obj.record]: obj.count };
+    else if (i !== Object.keys(_bins).length - 1) {
+      return { [obj.record]: obj.count };
+    }
+  }).filter(Boolean));
 
   let numPlayers = [];
   for (let i = 0; i < Object.keys(bins).length; i++) {
@@ -60,9 +70,8 @@ export const calculateEventStats = data => {
       // Handle prelims and top 16 only premier events.
       if (
         i == Object.keys(bins).length - 1 &&
-        32 > Object.values(bins).reduce((a, b) => a + b)
-      )
-        errorCount = 0;
+        Object.values(bins).reduce((a, b) => a + b) < 32
+      ) errorCount = 0;
 
       if (errorCount == 0) numPlayers = playersEstimate;
       if (errorCount !== 0 && i == Object.keys(bins).length - 1) {
