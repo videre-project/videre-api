@@ -202,8 +202,7 @@ export const eventsQuery = async (query, uids) => {
     parameters: pruneObjectKeys({
       [_format?.length == 1 ? 'format' : 'formats']:
         _format?.length == 1 ? _format[0] : _format,
-      [_type?.length == 1 ? 'type' : 'types']:
-        _type?.length == 1 ? _type[0] : _type,
+      [_type?.length == 1 ? 'type' : 'types']: _type?.length == 1 ? _type[0] : _type,
       time_interval: time_interval,
       offset,
       min_date: _min_date,

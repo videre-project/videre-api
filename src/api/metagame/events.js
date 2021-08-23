@@ -73,10 +73,8 @@ export default async (req, res) => {
   }
 
   // Get unique formats from matched events.
-  const formats = MTGO.FORMATS.filter(
-    format => [...new Set(
-        request_1.map(obj => obj.format.toLowerCase())
-      )].includes(format)
+  const formats = MTGO.FORMATS.filter(format =>
+    [...new Set(request_1.map(obj => obj.format.toLowerCase()))].includes(format)
   );
 
   // Get event results from event catalog.

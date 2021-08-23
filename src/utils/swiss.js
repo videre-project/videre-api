@@ -43,15 +43,18 @@ export const calculateEventStats = data => {
   const rdDist = calculateTriangle(10 ** 4, numRounds);
   const _bins = Object.assign({}, ...data.map(obj => ({ [obj.record]: obj.count })));
 
-  const bins = Object.assign({}, ...data.map((obj, i) => {
-    if (
-      Object.values(_bins).reduce((a, b) => a + b) < 32
-      && numRounds <= 5
-    ) return { [obj.record]: obj.count };
-    else if (i !== Object.keys(_bins).length - 1) {
-      return { [obj.record]: obj.count };
-    }
-  }).filter(Boolean));
+  const bins = Object.assign(
+    {},
+    ...data
+      .map((obj, i) => {
+        if (Object.values(_bins).reduce((a, b) => a + b) < 32 && numRounds <= 5)
+          return { [obj.record]: obj.count };
+        else if (i !== Object.keys(_bins).length - 1) {
+          return { [obj.record]: obj.count };
+        }
+      })
+      .filter(Boolean)
+  );
 
   let numPlayers = [];
   for (let i = 0; i < Object.keys(bins).length; i++) {
@@ -71,7 +74,8 @@ export const calculateEventStats = data => {
       if (
         i == Object.keys(bins).length - 1 &&
         Object.values(bins).reduce((a, b) => a + b) < 32
-      ) errorCount = 0;
+      )
+        errorCount = 0;
 
       if (errorCount == 0) numPlayers = playersEstimate;
       if (errorCount !== 0 && i == Object.keys(bins).length - 1) {
@@ -99,8 +103,8 @@ export const calculateEventStats = data => {
 /**
  * Converts an integer to an ordinal.
  */
-export const getNumberWithOrdinal = (n) => {
-  let s = ["th", "st", "nd", "rd"],
-      v = n % 100;
+export const getNumberWithOrdinal = n => {
+  let s = ['th', 'st', 'nd', 'rd'],
+    v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
+};

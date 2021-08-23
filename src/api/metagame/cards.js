@@ -145,10 +145,8 @@ export default async (req, res) => {
   }
 
   // Get unique formats from matched events.
-  const formats = MTGO.FORMATS.filter(
-    format => [...new Set(
-        request_1.map(obj => obj.format.toLowerCase())
-      )].includes(format)
+  const formats = MTGO.FORMATS.filter(format =>
+    [...new Set(request_1.map(obj => obj.format.toLowerCase()))].includes(format)
   );
 
   // Get event results from event catalog.
@@ -220,13 +218,12 @@ export default async (req, res) => {
                         return _data[parameter] < value;
                       case '=':
                         return _data[parameter] == value;
-                      case '!=':
-                        const data = formatData
-                          .filter(obj =>
-                            obj.deck_uid == _data.deck_uid
-                            && obj[parameter] == value
-                          )?.length;
+                      case '!=': {
+                        const data = formatData.filter(
+                          obj => obj.deck_uid == _data.deck_uid && obj[parameter] == value
+                        )?.length;
                         return data == 0 && _data[parameter] !== value;
+                      }
                     }
                   })
                   .filter(Boolean);

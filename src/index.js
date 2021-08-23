@@ -19,25 +19,28 @@ crawlRoutes(API_DIR).forEach(route => {
   server.all(parseRoute(route), require(route).default);
 });
 
+// Redirect to Github repository.
+server.get('/source', (_, res) => {
+  res.redirect('https://github.com/videre-project');
+});
+
 // 404 response.
-server.get('*', (req, res) => {
+server.get('*', (_, res) => {
   res.status(404).json({
-    details: "The requested method does not exist. For more information about this API's published methods and objects, see https://videreproject.com/docs/api."
+    details:
+      "The requested method does not exist. For more information about this API's published methods and objects, see https://videreproject.com/docs/api.",
   });
 });
 
 server.listen(PORT, error => {
   if (error) {
     console.error(
-      chalk.hex('#61AFFE')('[Server]')
-      + chalk.grey('\n>> ')
-      + chalk.red(`Error: ${error.stack}`)
+      chalk.hex('#61AFFE')('[Server]') +
+        chalk.grey('\n>> ') +
+        chalk.red(`Error: ${error.stack}`)
     );
-  };
+  }
   // Clear console
   process.stdout.write('\x1Bc');
-  console.info(
-    chalk.cyan('[Server]'),
-    chalk.hex('#7E7E89')(`Listening on port ${PORT}`)
-  );
+  console.info(chalk.cyan('[Server]'), chalk.hex('#7E7E89')(`Listening on port ${PORT}`));
 });
