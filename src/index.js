@@ -21,7 +21,7 @@ crawlRoutes(API_DIR).forEach(route => {
 
 // Redirect to Github repository.
 server.get('/source', (_, res) => {
-  res.redirect('https://github.com/videre-project');
+  res.redirect('https://github.com/videre-project/videre-api');
 });
 
 // 404 response.
