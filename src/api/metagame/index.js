@@ -9,7 +9,7 @@ export default async (req, res) => {
 
   // Handle erronous parameters.
   const _format = parameters?.format || parameters?.formats;
-  if (_format && !_format.filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
+  if (_format && ![_format].flat(1).filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
     return res.status(400).json({ details: "No valid 'format' parameter provided." });
   }
   if (parameters?.time_interval && parameters?.time_interval <= 0) {
