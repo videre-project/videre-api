@@ -136,19 +136,19 @@ export const eventsQuery = async (query, uids) => {
   });
   const _time_interval = parseInt(getParams(params, 'i', 'int', 'interval')[0]);
   const offset = getParams(params, 'o', 'ofs', 'offset')[0];
-  const _min_date = getParams(params, 'min', 'min-date')[0];
-  const _max_date = getParams(params, 'max', 'max-date')[0];
+  const _min_date = getParams(params, 'min', 'min_date', 'min-date')[0];
+  const _max_date = getParams(params, 'max', 'max_date', 'max-date')[0];
 
   const time_interval = uids?.length ? undefined : _time_interval || 2 * 7;
 
   // Format prettified dates from query string.
-  const min_date = _min_date?.length
+  const min_date = _min_date?.length && (_min_date?.match('/\//g') || []).length == 2
     ? new Intl.DateTimeFormat('en-US').format(
         new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
           (offset ? parseInt(offset) : 0)
       )
     : undefined;
-  const max_date = _max_date?.length
+  const max_date = _max_date?.length && (_max_date?.match('/\//g') || []).length == 2
     ? new Intl.DateTimeFormat('en-US').format(
         new Date(new Date(_max_date?.replace(/-/g, '/'))).getTime() -
           (offset ? parseInt(offset) : 0)
