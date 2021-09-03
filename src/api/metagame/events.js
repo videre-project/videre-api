@@ -22,7 +22,7 @@ export default async (req, res) => {
   const { parameters, data: request_1 } = await eventsQuery(req.query, uids);
 
   // Handle erronous parameters.
-  const _format = [...(parameters?.format || parameters?.formats)];
+  const _format = [...(parameters?.format || parameters?.formats || [])];
   if (_format && ![_format].flat(1).filter(format => MTGO.FORMATS.includes(format.toLowerCase()))) {
     return res.status(400).json({ details: "No valid 'format' parameter provided." });
   }
@@ -220,6 +220,7 @@ export default async (req, res) => {
                       stats: {
                         record: _obj.stats.record,
                         points: _obj.stats.points,
+                        rank: _obj.stats.rank,
                         ...tiebreakers,
                       },
                     };

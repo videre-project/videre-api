@@ -191,7 +191,7 @@ export const eventsQuery = async (query, uids) => {
             : '',
           min_date ? `date::DATE >= '${min_date}'::DATE` : '',
           max_date ? `date::DATE <= '${max_date}'::DATE` : '',
-          uids?.length ? `uid IN (${uids})` : '',
+          uids?.length ? `uid IN (${uids.map(_uid => `${_uid}::INTEGER`)})` : '',
         ]
           .filter(Boolean)
           .join(' AND ')}
