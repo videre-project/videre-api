@@ -142,20 +142,22 @@ export const eventsQuery = async (query, uids) => {
   const time_interval = uids?.length ? undefined : _time_interval || 2 * 7;
 
   // Format prettified dates from query string.
-  const min_date = _min_date?.length && (_min_date?.match('/\//g') || []).length == 2
-    ? new Intl.DateTimeFormat('en-US').format(
-        new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
-          (offset ? parseInt(offset) : 0)
-      )
-    : undefined;
-  const max_date = _max_date?.length && (_max_date?.match('/\//g') || []).length == 2
-    ? new Intl.DateTimeFormat('en-US').format(
-        new Date(new Date(_max_date?.replace(/-/g, '/'))).getTime() -
-          (offset ? parseInt(offset) : 0)
-      )
-    : offset?.length
-    ? new Intl.DateTimeFormat('en-US').format(new Date().getTime() - parseInt(offset))
-    : undefined;
+  const min_date =
+    _min_date?.length && (_min_date?.match('///g') || []).length == 2
+      ? new Intl.DateTimeFormat('en-US').format(
+          new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
+            (offset ? parseInt(offset) : 0)
+        )
+      : undefined;
+  const max_date =
+    _max_date?.length && (_max_date?.match('///g') || []).length == 2
+      ? new Intl.DateTimeFormat('en-US').format(
+          new Date(new Date(_max_date?.replace(/-/g, '/'))).getTime() -
+            (offset ? parseInt(offset) : 0)
+        )
+      : offset?.length
+      ? new Intl.DateTimeFormat('en-US').format(new Date().getTime() - parseInt(offset))
+      : undefined;
 
   const eventData = await sql.unsafe(`
     SELECT * FROM events
