@@ -23,6 +23,7 @@ const entry = crawlRoutes(API_DIR).reduce((output, path) => {
 
 module.exports = {
   mode: 'production',
+  target: 'node',
   module: {
     rules: [
       {
@@ -34,15 +35,6 @@ module.exports = {
   },
   resolve: {
     modules: [join(process.cwd(), 'src'), 'node_modules'],
-    fallback: {
-      os: false,
-      fs: false,
-      url: false,
-      path: false,
-      crypto: false,
-      tls: false,
-      net: false,
-    },
   },
   entry,
   output: {
