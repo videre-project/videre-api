@@ -13,3 +13,4 @@ api
 *.njsproj
 *.sln
 *.sw?
+.vercel
