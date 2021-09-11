@@ -1,9 +1,9 @@
-import MTGO from 'data/mtgo';
-import { sql, dynamicSortMultiple } from 'utils/database';
-import { eventsQuery } from 'utils/querybuilder';
-import { calculateEventStats } from 'utils/swiss';
+import MTGO from '../../data/mtgo';
+import { sql, dynamicSortMultiple } from '../../utils/database';
+import { eventsQuery } from '../../utils/querybuilder';
+import { calculateEventStats } from '../../utils/swiss';
 
-export default async (req, res) => {
+const Metagame = async (req, res) => {
   // Get event catalog and parsed parameters.
   const { parameters, data: request_1 } = await eventsQuery(req.query);
 
@@ -249,3 +249,5 @@ export default async (req, res) => {
       .reduce((a, b) => ({ ...a, ...b })),
   });
 };
+
+export default Metagame;

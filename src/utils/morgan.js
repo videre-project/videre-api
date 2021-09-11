@@ -1,7 +1,7 @@
 import morgan from 'morgan';
 import chalk from 'chalk';
-import { getNumberWithOrdinal } from 'utils/swiss';
-import { API_DIR, parseRoute, crawlRoutes } from 'utils/routes';
+import { getNumberWithOrdinal } from './swiss';
+import { API_DIR, parseRoute, crawlRoutes } from './routes';
 
 const colors = {
   METHOD: {

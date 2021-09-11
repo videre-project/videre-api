@@ -1,9 +1,9 @@
-import MTGO from 'data/mtgo';
-import { sql } from 'utils/database';
-import { calculateEventStats } from 'utils/swiss';
-import { getParams, eventsQuery } from 'utils/querybuilder';
+import MTGO from '../../data/mtgo';
+import { sql } from '../../utils/database';
+import { calculateEventStats } from '../../utils/swiss';
+import { getParams, eventsQuery } from '../../utils/querybuilder';
 
-export default async (req, res) => {
+const Events = async (req, res) => {
   // Parse and pre-validate 'uids' parameter
   const _uids = getParams(req.query, 'id', 'uid', 'uids', 'event', 'event_id', 'eventID');
   const uids = _uids
@@ -238,3 +238,5 @@ export default async (req, res) => {
       .reduce((a, b) => ({ ...a, ...b })),
   });
 };
+
+export default Events;

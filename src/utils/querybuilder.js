@@ -1,5 +1,5 @@
-import { sql } from 'utils/database';
-import MTGO from 'data/mtgo';
+import { sql } from './database';
+import MTGO from '../data/mtgo';
 
 const toPascalCase = text => text.charAt(0).toUpperCase() + text.slice(1);
 

@@ -1,9 +1,9 @@
 import fetch from 'node-fetch';
-import MTGO from 'data/mtgo';
-import { sql, dynamicSortMultiple } from 'utils/database';
-import { getQueryArgs, groupQuery, eventsQuery } from 'utils/querybuilder';
+import MTGO from '../../data/mtgo';
+import { sql, dynamicSortMultiple } from '../../utils/database';
+import { getQueryArgs, groupQuery, eventsQuery } from '../../utils/querybuilder';
 
-export default async (req, res) => {
+const Cards = async (req, res) => {
   // Group query parameters by named params and aliases.
   const queryParams = groupQuery({
     query: getQueryArgs(req?.query).flat(1),
@@ -310,3 +310,5 @@ export default async (req, res) => {
       .reduce((a, b) => ({ ...a, ...b })),
   });
 };
+
+export default Cards;

@@ -2,8 +2,8 @@ import chalk from 'chalk';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { morganMiddleware } from 'utils/morgan';
-import { API_DIR, parseRoute, crawlRoutes } from 'utils/routes';
+import { morganMiddleware } from './utils/morgan';
+import { API_DIR, parseRoute, crawlRoutes } from './utils/routes';
 
 const PORT = process.env.PORT || 3000;
 

@@ -19,3 +19,11 @@ jobs:
 
       - name: Check for regressions
         run: yarn lint
+
+      - name: Deploy to Production
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-args: '--prod'
+          vercel-org-id: ${{ secrets.ORG_ID}}
+          vercel-project-id: ${{ secrets.PROJECT_ID}}
