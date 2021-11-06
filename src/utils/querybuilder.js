@@ -148,17 +148,19 @@ export const eventsQuery = async (query, uids) => {
     _min_date?.length && (_min_date?.match('///g') || []).length == 2
       ? new Intl.DateTimeFormat('en-US').format(
           new Date(new Date(_min_date?.replace(/-/g, '/'))).getTime() +
-            (offset ? parseInt(offset) : 0) * (8.64 * 10**7)
+            (offset ? parseInt(offset) : 0) * (8.64 * 10 ** 7)
         )
       : undefined;
   const max_date =
     _max_date?.length && (_max_date?.match('///g') || []).length == 2
       ? new Intl.DateTimeFormat('en-US').format(
           new Date(new Date(_max_date?.replace(/-/g, '/'))).getTime() -
-            (offset ? parseInt(offset) : 0) * (8.64 * 10**7)
+            (offset ? parseInt(offset) : 0) * (8.64 * 10 ** 7)
         )
       : offset?.length
-      ? new Intl.DateTimeFormat('en-US').format(new Date().getTime() - (parseInt(offset) * (8.64 * 10**7)))
+      ? new Intl.DateTimeFormat('en-US').format(
+          new Date().getTime() - parseInt(offset) * (8.64 * 10 ** 7)
+        )
       : undefined;
 
   const eventData = await sql.unsafe(`
