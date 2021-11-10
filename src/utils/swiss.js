@@ -95,10 +95,10 @@ export const calculateEventStats = data => {
   return {
     obsPlayers: data.map(obj => obj.count).reduce((a, b) => a + b, 0),
     truncPlayers: Object.values(bins).reduce((a, b) => a + b, 0),
-    truncTriangle: _bins,//bins,
+    truncTriangle: _bins, //bins,
     numPlayers: numPlayers,
     triangle: calculateTriangle(numPlayers, numRounds),
-    truncated: (Object.values(_bins).length !== Object.values(bins).length) ? true : false
+    truncated: Object.values(_bins).length !== Object.values(bins).length ? true : false,
   };
 };
 

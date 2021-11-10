@@ -108,7 +108,8 @@ const Metagame = async (req, res) => {
                     errors.includes('container')
                       ? `the container '${getValue('container')}' does not exist`
                       : '',
-                  ].filter(Boolean)
+                  ]
+                    .filter(Boolean)
                     .join(', ')
                     .replace(/, ([^,]*)$/, ' and $1')
                     .slice(1) +
@@ -127,23 +128,30 @@ const Metagame = async (req, res) => {
   // Query warnings
   warnings.warnings = [
     // ...(warnings?.warnings || []),
-    ...[...new Set(query
-      .filter(obj => obj.parameter == 'quantity' && obj.value <= 0)
-      .map(obj => obj.group)
-    )].map(group => {
-      const getValue = parameter =>
-        _query
-          .filter(obj => obj.group == group)
-          .filter(obj => obj.parameter == parameter)
-          .map(obj => obj.value)[0];
-      return [
-        `Condition ${group} parameter 'quantity' with value '${getValue('quantity')}' is less than 1.`,
-        `Please use “cardname != ${getValue('cardname')}” instead. Corrected.`,
-      ]
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }).flat(1),
+    ...[
+      ...new Set(
+        query
+          .filter(obj => obj.parameter == 'quantity' && obj.value <= 0)
+          .map(obj => obj.group)
+      ),
+    ]
+      .map(group => {
+        const getValue = parameter =>
+          _query
+            .filter(obj => obj.group == group)
+            .filter(obj => obj.parameter == parameter)
+            .map(obj => obj.value)[0];
+        return [
+          `Condition ${group} parameter 'quantity' with value '${getValue(
+            'quantity'
+          )}' is less than 1.`,
+          `Please use “cardname != ${getValue('cardname')}” instead. Corrected.`,
+        ]
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      })
+      .flat(1),
   ];
   if (!warnings.warnings.length) delete warnings.warnings;
 
@@ -155,19 +163,23 @@ const Metagame = async (req, res) => {
       details: `Provided query ${
         ignoredGroups?.length == 1 ? 'condition' : 'conditions'
       } had one or more invalid parameters.`,
-      ...Object.keys(warnings).sort().reduce((r, k) => (r[k] = warnings[k], r), {}),
+      ...Object.keys(warnings)
+        .sort()
+        .reduce((r, k) => ((r[k] = warnings[k]), r), {}),
     });
   }
   query.forEach((obj, _i) => {
     if (obj.parameter == 'quantity' && obj.value <= 0) {
       const queryGroup = query.filter(_obj => _obj.group == obj.group);
       if (queryGroup.length && queryGroup.find(_obj => _obj.parameter == 'cardname')) {
-        query = query.map((condition, i) => {
-          if (condition.group == obj.group && condition.parameter == 'cardname') {
-            return { ...condition, operator: '!=' };
-          } else if (_i !== i) return condition;
-          return;
-        }).filter(Boolean);
+        query = query
+          .map((condition, i) => {
+            if (condition.group == obj.group && condition.parameter == 'cardname') {
+              return { ...condition, operator: '!=' };
+            } else if (_i !== i) return condition;
+            return;
+          })
+          .filter(Boolean);
       } else query = query.filter(_obj => _obj.group != obj.group);
     }
   });
@@ -215,16 +227,12 @@ const Metagame = async (req, res) => {
       ...unmatchedFormats.map(
         format => `The format parameter '${format}' does not exist.`
       ),
-      ...unmatchedTypes.map(
-        type => `The event type parameter '${type}' does not exist.`
-      ),
+      ...unmatchedTypes.map(type => `The event type parameter '${type}' does not exist.`),
     ];
   } else if (unmatchedUIDs.length) {
     // Show invalid event ids once format type and/or event type is valid.
     warnings.errors = [
-      ...unmatchedUIDs.map(
-        uid => `The event id parameter '${uid}' could not be found.`
-      ),
+      ...unmatchedUIDs.map(uid => `The event id parameter '${uid}' could not be found.`),
     ];
   }
   // Throw error if no event data is found.
@@ -407,7 +415,9 @@ const Metagame = async (req, res) => {
           .flat(1),
       },
     }),
-    ...Object.keys(warnings).sort().reduce((r, k) => (r[k] = warnings[k], r), {}),
+    ...Object.keys(warnings)
+      .sort()
+      .reduce((r, k) => ((r[k] = warnings[k]), r), {}),
     data: formats
       .map(format => {
         const _events = request_1.filter(
@@ -444,7 +454,7 @@ const Metagame = async (req, res) => {
                 type: obj.type,
                 date: obj.date,
                 stats: {
-                  obsPlayers: eventRecords[obj.uid].obsPlayers,//.truncPlayers,
+                  obsPlayers: eventRecords[obj.uid].obsPlayers, //.truncPlayers,
                   obsSwiss: eventRecords[obj.uid].truncTriangle,
                   obsArchetypes: _archetypes.filter(
                     archetype => obj.uid == archetype.event
