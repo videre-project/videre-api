@@ -456,9 +456,9 @@ const Metagame = async (req, res) => {
                 stats: {
                   obsPlayers: eventRecords[obj.uid].obsPlayers, //.truncPlayers,
                   obsSwiss: eventRecords[obj.uid].truncTriangle,
-                  obsArchetypes: _archetypes.filter(
+                  obsArchetypes: [...new Set(_archetypes.filter(
                     archetype => obj.uid == archetype.event
-                  ).length,
+                  ).map(obj => obj.archetype_uid))].length,
                   truncated: eventRecords[obj.uid].truncated,
                   approxPlayers: eventRecords[obj.uid].numPlayers,
                   approxSwiss: eventRecords[obj.uid].triangle,
