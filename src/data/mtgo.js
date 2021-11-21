@@ -1,8 +1,12 @@
+import { FORMATS } from './magic.js';
+
+const excludedFormats = ['historic'];
+
 /**
  * Magic: The Gathering Online supported formats, sanctioned event types, colors, card types, etc.
  */
 const MTGO = {
-  FORMATS: ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'pauper'],
+  FORMATS: FORMATS.filter(format => !excludedFormats.includes(format)),
   EVENT_TYPES: [
     'mocs',
     'preliminary',
